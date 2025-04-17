@@ -19,10 +19,21 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
       startOnLoad: true,
       theme: "default",
       securityLevel: "loose",
+      themeCSS: `
+        .edgeLabel {
+          background: white;
+        }
+
+        .edgeLabel .background {
+          background: none;
+          fill: white;
+        }
+      `,
       flowchart: {
         useMaxWidth: true,
-        htmlLabels: true,
+        htmlLabels: false,
         curve: "basis",
+        rankSpacing: 200,
       },
     });
 

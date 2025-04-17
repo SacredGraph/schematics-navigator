@@ -55,20 +55,70 @@ export default function NodeDetailsPage() {
 
       let definition = `graph LR\n`;
 
-      // Add the central node
-      definition += `  node["${nodeName}<br/>(${partName})"]\n`;
+      // Define styles for nodes and nets
+      definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
+      definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
+      definition += `  linkStyle default color:black\n`;
 
-      // Add all nets connected to this node
+      // Add the central node with styling
+      definition += `  node["${nodeName}<br/><small>(${partName})</small>"]\n`;
+      definition += `  class node nodeStyle\n`;
+
+      // Group pins by net name to avoid duplicates
+      const netMap = new Map<
+        string,
+        {
+          netName: string;
+          pins: { name: string; index: number }[];
+        }
+      >();
+
+      // Process all pins and group them by net
       pins
         .sort((a, b) => a.name.localeCompare(b.name))
         .forEach((pin, index) => {
           const netName = pin.net.name;
           const pinName = pin.name;
-          const netId = `net${index}`;
 
-          definition += `  ${netId}["${netName}"]\n`;
-          definition += `  node ---|"Pin ${pinName}"| ${netId}\n`;
+          if (!netMap.has(netName)) {
+            netMap.set(netName, {
+              netName,
+              pins: [],
+            });
+          }
+
+          const netData = netMap.get(netName)!;
+          netData.pins.push({ name: pinName, index });
         });
+
+      // Split nets into left and right sides for better layout
+      const netEntries = Array.from(netMap.entries());
+      const leftNets = netEntries.slice(0, Math.ceil(netEntries.length / 2));
+      const rightNets = netEntries.slice(Math.ceil(netEntries.length / 2));
+
+      // Add left nets
+      leftNets.forEach(([netName, netData], netIndex) => {
+        // Add the net definition
+        definition += `  netL${netIndex}["${netName}"]\n`;
+        definition += `  class netL${netIndex} netStyle\n`;
+
+        // Add connections for each pin
+        netData.pins.forEach((pin) => {
+          definition += `  node ---|"${pin.name}"| netL${netIndex}\n`;
+        });
+      });
+
+      // Add right nets
+      rightNets.forEach(([netName, netData], netIndex) => {
+        // Add the net definition
+        definition += `  netR${netIndex}["${netName}"]\n`;
+        definition += `  class netR${netIndex} netStyle\n`;
+
+        // Add connections for each pin
+        netData.pins.forEach((pin) => {
+          definition += `  node ---|"${pin.name}"| netR${netIndex}\n`;
+        });
+      });
 
       setMermaidDefinition(definition);
     } catch (error) {

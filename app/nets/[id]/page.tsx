@@ -54,29 +54,70 @@ export default function NetDetailsPage() {
 
       let definition = `graph LR\n`;
 
+      // Define styles for nodes and nets
+      definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
+      definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
+      definition += `  linkStyle default fill:white,color:black,background-color:white,opacity:1,padding:4px\n`;
+
+      // Add the central net node with styling
       definition += `  net["${netName}"]\n`;
+      definition += `  class net netStyle\n`;
 
-      const leftPins = pins.slice(0, Math.ceil(pins.length / 2));
-      const rightPins = pins.slice(Math.ceil(pins.length / 2));
+      // Group pins by node name to avoid duplicates
+      const nodeMap = new Map<
+        string,
+        {
+          nodeName: string;
+          partName: string;
+          pins: { name: string; index: number }[];
+        }
+      >();
 
-      leftPins.forEach((pin, index) => {
+      // Process all pins and group them by node
+      pins.forEach((pin, index) => {
         const nodeName = pin.node.name;
         const partName = pin.node.part.name;
         const pinName = pin.name;
-        const nodeId = `nodeL${index}`;
 
-        definition += `  ${nodeId}["${nodeName}<br/>(${partName})"]\n`;
-        definition += `  ${nodeId} ---|"Pin ${pinName}"| net\n`;
+        if (!nodeMap.has(nodeName)) {
+          nodeMap.set(nodeName, {
+            nodeName,
+            partName,
+            pins: [],
+          });
+        }
+
+        const nodeData = nodeMap.get(nodeName)!;
+        nodeData.pins.push({ name: pinName, index });
       });
 
-      rightPins.forEach((pin, index) => {
-        const nodeName = pin.node.name;
-        const partName = pin.node.part.name;
-        const pinName = pin.name;
-        const nodeId = `nodeR${index}`;
+      // Split nodes into left and right sides for better layout
+      const nodeEntries = Array.from(nodeMap.entries());
+      const leftNodes = nodeEntries.slice(0, Math.ceil(nodeEntries.length / 2));
+      const rightNodes = nodeEntries.slice(Math.ceil(nodeEntries.length / 2));
 
-        definition += `  ${nodeId}["${nodeName}<br/>(${partName})"]\n`;
-        definition += `  net ---|"Pin ${pinName}"| ${nodeId}\n`;
+      // Add left nodes
+      leftNodes.forEach(([nodeName, nodeData], nodeIndex) => {
+        // Add the node definition
+        definition += `  nodeL${nodeIndex}["${nodeName}<br/><small>(${nodeData.partName})</small>"]\n`;
+        definition += `  class nodeL${nodeIndex} nodeStyle\n`;
+
+        // Add connections for each pin
+        nodeData.pins.forEach((pin) => {
+          definition += `  nodeL${nodeIndex} ---|"${pin.name}"| net\n`;
+        });
+      });
+
+      // Add right nodes
+      rightNodes.forEach(([nodeName, nodeData], nodeIndex) => {
+        // Add the node definition
+        definition += `  nodeR${nodeIndex}["${nodeName}<br/><small>(${nodeData.partName})</small>"]\n`;
+        definition += `  class nodeR${nodeIndex} nodeStyle\n`;
+
+        // Add connections for each pin
+        nodeData.pins.forEach((pin) => {
+          definition += `  net ---|"${pin.name}"| nodeR${nodeIndex}\n`;
+        });
       });
 
       setMermaidDefinition(definition);
