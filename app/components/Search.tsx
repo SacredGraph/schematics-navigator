@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 interface SearchProps {
@@ -15,6 +16,7 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Handle clicks outside the search component to close suggestions
   useEffect(() => {
@@ -82,6 +84,9 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
     if (onSelect) {
       onSelect(suggestion);
     }
+
+    // Redirect to the net details page
+    router.push(`/nets/${encodeURIComponent(suggestion)}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -106,6 +111,9 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
           if (onSelect) {
             onSelect(suggestions[selectedIndex]);
           }
+
+          // Redirect to the net details page
+          router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex])}`);
         }
         break;
       case "Enter":
@@ -118,6 +126,9 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
           if (onSelect) {
             onSelect(suggestions[selectedIndex]);
           }
+
+          // Redirect to the net details page
+          router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex])}`);
         }
         break;
       case "Escape":
@@ -128,7 +139,7 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
   };
 
   return (
-    <div className="w-full max-w-2xl" ref={searchRef}>
+    <div className="w-full max-w-2xl mx-auto" ref={searchRef}>
       <div className="relative">
         <input
           ref={inputRef}

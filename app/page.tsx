@@ -5,7 +5,7 @@ import Search from "./components/Search";
 export default function Home() {
   const handleSelect = (value: string) => {
     console.log("Selected value:", value);
-    // Add additional logic when a suggestion is selected
+    // The redirection is now handled in the Search component
   };
 
   return (
