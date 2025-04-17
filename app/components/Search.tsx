@@ -8,9 +8,14 @@ interface SearchProps {
   onSelect?: (value: string) => void;
 }
 
-export default function Search({ placeholder = "Search by net name (e.g., VDD, GND, CLK)", onSelect }: SearchProps) {
+interface SearchResult {
+  name: string;
+  type: "net" | "node";
+}
+
+export default function Search({ placeholder = "Search by net or node name", onSelect }: SearchProps) {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -53,9 +58,6 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
         if (response.ok) {
           setSuggestions(data.results);
           setShowSuggestions(true);
-
-          // No longer automatically selecting the first suggestion
-          // Just highlighting it by setting selectedIndex to 0
         } else {
           console.error("Error fetching suggestions:", data.error);
           setSuggestions([]);
@@ -76,17 +78,21 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
     setQuery(e.target.value);
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
+  const handleSuggestionClick = (suggestion: SearchResult) => {
+    setQuery(suggestion.name);
     setShowSuggestions(false);
 
     // Call the onSelect callback if provided
     if (onSelect) {
-      onSelect(suggestion);
+      onSelect(suggestion.name);
     }
 
-    // Redirect to the net details page
-    router.push(`/nets/${encodeURIComponent(suggestion)}`);
+    // Redirect to the appropriate page based on the type
+    if (suggestion.type === "net") {
+      router.push(`/nets/${encodeURIComponent(suggestion.name)}`);
+    } else {
+      router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -104,31 +110,39 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
       case "Tab":
         e.preventDefault();
         if (suggestions[selectedIndex]) {
-          setQuery(suggestions[selectedIndex]);
+          setQuery(suggestions[selectedIndex].name);
           setShowSuggestions(false);
 
           // Call the onSelect callback if provided
           if (onSelect) {
-            onSelect(suggestions[selectedIndex]);
+            onSelect(suggestions[selectedIndex].name);
           }
 
-          // Redirect to the net details page
-          router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex])}`);
+          // Redirect to the appropriate page based on the type
+          if (suggestions[selectedIndex].type === "net") {
+            router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          } else {
+            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          }
         }
         break;
       case "Enter":
         e.preventDefault();
         if (suggestions[selectedIndex]) {
-          setQuery(suggestions[selectedIndex]);
+          setQuery(suggestions[selectedIndex].name);
           setShowSuggestions(false);
 
           // Call the onSelect callback if provided
           if (onSelect) {
-            onSelect(suggestions[selectedIndex]);
+            onSelect(suggestions[selectedIndex].name);
           }
 
-          // Redirect to the net details page
-          router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex])}`);
+          // Redirect to the appropriate page based on the type
+          if (suggestions[selectedIndex].type === "net") {
+            router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          } else {
+            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          }
         }
         break;
       case "Escape":
@@ -137,6 +151,15 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
         break;
     }
   };
+
+  // Group suggestions by type
+  const groupedSuggestions = suggestions.reduce<Record<string, SearchResult[]>>((acc, suggestion) => {
+    if (!acc[suggestion.type]) {
+      acc[suggestion.type] = [];
+    }
+    acc[suggestion.type].push(suggestion);
+    return acc;
+  }, {});
 
   return (
     <div className="w-full max-w-2xl mx-auto" ref={searchRef}>
@@ -160,14 +183,23 @@ export default function Search({ placeholder = "Search by net name (e.g., VDD, G
 
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-            {suggestions.map((suggestion, index) => (
-              <div
-                key={index}
-                className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${index === selectedIndex ? "bg-blue-100" : ""}`}
-                onClick={() => handleSuggestionClick(suggestion)}
-                onMouseEnter={() => setSelectedIndex(index)}
-              >
-                {suggestion}
+            {Object.entries(groupedSuggestions).map(([type, items]) => (
+              <div key={type}>
+                <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">
+                  {type === "net" ? "Nets" : "Nodes"}
+                </div>
+                {items.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                      suggestions.indexOf(suggestion) === selectedIndex ? "bg-blue-100" : ""
+                    }`}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    onMouseEnter={() => setSelectedIndex(suggestions.indexOf(suggestion))}
+                  >
+                    {suggestion.name}
+                  </div>
+                ))}
               </div>
             ))}
           </div>

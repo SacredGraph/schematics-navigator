@@ -6,26 +6,36 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get("q");
 
   if (!query) {
-    return NextResponse.json({ error: "Query parameter is required" }, { status: 400 });
+    return NextResponse.json({ error: "Search query is required" }, { status: 400 });
   }
 
   const session = getSession();
 
   try {
+    // Use a simpler approach with UNION ALL
     const result = await session.run(
-      `MATCH (n:SchematicNet)
-       WHERE n.name STARTS WITH $query
-       RETURN n.name as name
-       LIMIT 10`,
+      `MATCH (net:SchematicNet)
+      WHERE net.name CONTAINS $query
+      RETURN net.name as name, 'net' as type
+      LIMIT 10
+      UNION ALL
+      MATCH (node:SchematicNode)
+      WHERE node.name CONTAINS $query
+      RETURN node.name as name, 'node' as type
+      LIMIT 10`,
       { query: query.toUpperCase() }
     );
 
-    const netNames = result.records.map((record) => record.get("name").toString());
+    // Format results
+    const results = result.records.map((record) => ({
+      name: record.get("name"),
+      type: record.get("type"),
+    }));
 
-    return NextResponse.json({ results: netNames });
+    return NextResponse.json({ results });
   } catch (error) {
-    console.error("Error searching net names:", error);
-    return NextResponse.json({ error: "Failed to search net names" }, { status: 500 });
+    console.error("Error searching:", error);
+    return NextResponse.json({ error: "Failed to search" }, { status: 500 });
   } finally {
     await session.close();
   }
