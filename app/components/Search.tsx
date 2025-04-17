@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 interface SearchProps {
   placeholder?: string;
-  onSelect?: (value: string) => void;
+  onSelect?: (name: string) => void;
+  disableRedirect?: boolean;
+  filterType?: "node" | "net" | "all";
 }
 
 interface SearchResult {
@@ -13,7 +15,12 @@ interface SearchResult {
   type: "net" | "node";
 }
 
-export default function Search({ placeholder = "Search by net or node name", onSelect }: SearchProps) {
+export default function Search({
+  placeholder = "Search by net or node name",
+  onSelect,
+  disableRedirect = false,
+  filterType = "all",
+}: SearchProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +63,13 @@ export default function Search({ placeholder = "Search by net or node name", onS
         const data = await response.json();
 
         if (response.ok) {
-          setSuggestions(data.results);
+          // Filter suggestions based on filterType
+          const filteredResults = data.results.filter((result: SearchResult) => {
+            if (filterType === "all") return true;
+            return result.type === filterType;
+          });
+
+          setSuggestions(filteredResults);
           setShowSuggestions(true);
         } else {
           console.error("Error fetching suggestions:", data.error);
@@ -72,7 +85,7 @@ export default function Search({ placeholder = "Search by net or node name", onS
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query]);
+  }, [query, filterType]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -87,11 +100,13 @@ export default function Search({ placeholder = "Search by net or node name", onS
       onSelect(suggestion.name);
     }
 
-    // Redirect to the appropriate page based on the type
-    if (suggestion.type === "net") {
-      router.push(`/nets/${encodeURIComponent(suggestion.name)}`);
-    } else {
-      router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+    // Only redirect if disableRedirect is false
+    if (!disableRedirect) {
+      if (suggestion.type === "net") {
+        router.push(`/nets/${encodeURIComponent(suggestion.name)}`);
+      } else {
+        router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+      }
     }
   };
 
@@ -118,11 +133,13 @@ export default function Search({ placeholder = "Search by net or node name", onS
             onSelect(suggestions[selectedIndex].name);
           }
 
-          // Redirect to the appropriate page based on the type
-          if (suggestions[selectedIndex].type === "net") {
-            router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
-          } else {
-            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          // Only redirect if disableRedirect is false
+          if (!disableRedirect) {
+            if (suggestions[selectedIndex].type === "net") {
+              router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            } else {
+              router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            }
           }
         }
         break;
@@ -137,11 +154,13 @@ export default function Search({ placeholder = "Search by net or node name", onS
             onSelect(suggestions[selectedIndex].name);
           }
 
-          // Redirect to the appropriate page based on the type
-          if (suggestions[selectedIndex].type === "net") {
-            router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
-          } else {
-            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          // Only redirect if disableRedirect is false
+          if (!disableRedirect) {
+            if (suggestions[selectedIndex].type === "net") {
+              router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            } else {
+              router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            }
           }
         }
         break;
@@ -160,6 +179,10 @@ export default function Search({ placeholder = "Search by net or node name", onS
     acc[suggestion.type].push(suggestion);
     return acc;
   }, {});
+
+  // Only show the filtered type in the UI
+  const displaySuggestions =
+    filterType === "all" ? groupedSuggestions : { [filterType]: groupedSuggestions[filterType] || [] };
 
   return (
     <div className="w-full max-w-2xl mx-auto" ref={searchRef}>
@@ -183,7 +206,7 @@ export default function Search({ placeholder = "Search by net or node name", onS
 
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-            {Object.entries(groupedSuggestions).map(([type, items]) => (
+            {Object.entries(displaySuggestions).map(([type, items]) => (
               <div key={type}>
                 <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">
                   {type === "net" ? "Nets" : "Nodes"}

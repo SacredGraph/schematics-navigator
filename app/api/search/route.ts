@@ -15,13 +15,15 @@ export async function GET(request: NextRequest) {
     // Use a simpler approach with UNION ALL
     const result = await session.run(
       `MATCH (net:SchematicNet)
-      WHERE net.name CONTAINS $query
+      WHERE net.name STARTS WITH $query
       RETURN net.name as name, 'net' as type
+      ORDER BY name
       LIMIT 10
       UNION ALL
       MATCH (node:SchematicNode)
-      WHERE node.name CONTAINS $query
+      WHERE node.name STARTS WITH $query
       RETURN node.name as name, 'node' as type
+      ORDER BY name
       LIMIT 10`,
       { query: query.toUpperCase() }
     );
