@@ -57,7 +57,6 @@ export default function NetDetailsPage() {
       // Define styles for nodes and nets
       definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
       definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
-      definition += `  linkStyle default fill:white,color:black,background-color:white,opacity:1,padding:4px\n`;
 
       // Add the central net node with styling
       definition += `  net["${netName}"]\n`;

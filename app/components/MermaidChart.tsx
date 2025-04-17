@@ -20,18 +20,23 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
       theme: "default",
       securityLevel: "loose",
       themeCSS: `
-        .edgeLabel {
-          background: white;
+        .edgeLabel,
+        .edgeLabel .labelBkg {
+          background: none;
         }
 
-        .edgeLabel .background {
-          background: none;
-          fill: white;
+        .edgeLabel p {
+          background: white;
+          border-radius: 99px;
+          border: 1px solid black;
+          padding: 2px 6px;
+          text-align: center;
+          min-width: 30px;
         }
       `,
       flowchart: {
         useMaxWidth: true,
-        htmlLabels: false,
+        htmlLabels: true,
         curve: "basis",
         rankSpacing: 200,
       },

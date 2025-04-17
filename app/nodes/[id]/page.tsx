@@ -58,7 +58,6 @@ export default function NodeDetailsPage() {
       // Define styles for nodes and nets
       definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
       definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
-      definition += `  linkStyle default color:black\n`;
 
       // Add the central node with styling
       definition += `  node["${nodeName}<br/><small>(${partName})</small>"]\n`;
