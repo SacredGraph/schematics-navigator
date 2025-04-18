@@ -1,26 +1,30 @@
 import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ design: string }> }) {
   const searchParams = request.nextUrl.searchParams;
-  const query = searchParams.get("q");
+  const query = searchParams.get("q") || "";
+  const resolvedParams = await params;
+  const design = decodeURIComponent(resolvedParams.design);
   const session = getSession();
 
   try {
-    // Use a simpler approach with UNION ALL
+    // Use a simpler approach with UNION ALL, scoped by design
     const result = await session.run(
-      `MATCH (net:SchematicNet)
+      `MATCH (d:SchematicDesign { name: $design })
+      MATCH (net:SchematicNet)<-[:HAS_NET]-(d)
       WHERE net.name STARTS WITH $query
       RETURN net.name as name, 'net' as type
       ORDER BY name
       LIMIT 10
       UNION ALL
-      MATCH (node:SchematicNode)
+      MATCH (d:SchematicDesign { name: $design })
+      MATCH (node:SchematicNode)<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
       WHERE node.name STARTS WITH $query
       RETURN node.name as name, 'node' as type
       ORDER BY name
       LIMIT 10`,
-      { query: query.toUpperCase() }
+      { query: query.toUpperCase(), design }
     );
 
     // Format results

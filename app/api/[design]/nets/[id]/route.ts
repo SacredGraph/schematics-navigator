@@ -1,19 +1,16 @@
 import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string; design: string }> }) {
   const resolvedParams = await params;
   const netId = resolvedParams.id.toUpperCase();
-
-  if (!netId) {
-    return NextResponse.json({ error: "Net ID is required" }, { status: 400 });
-  }
-
+  const design = decodeURIComponent(resolvedParams.design);
   const session = getSession();
 
   try {
     const result = await session.run(
-      `MATCH (net:SchematicNet { name: $netId })
+      `MATCH (d:SchematicDesign { name: $design })
+       MATCH (net:SchematicNet { name: $netId })<-[:HAS_NET]-(d)
        MATCH (net)-[:CONNECTS]->(pin:SchematicNodePin)<-[:HAS_PIN]-(node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
        RETURN net.name as netName, 
               collect({
@@ -27,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 }
               }) as pins
        LIMIT 1`,
-      { netId }
+      { netId, design }
     );
 
     if (result.records.length === 0) {

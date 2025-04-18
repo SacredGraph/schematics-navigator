@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import DesignSelector from "./components/DesignSelector";
-import Search from "./components/Search";
+import DesignSelector from "../components/DesignSelector";
+import Search from "../components/Search";
 
 export default function Home() {
   const router = useRouter();

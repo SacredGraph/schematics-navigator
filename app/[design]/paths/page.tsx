@@ -1,15 +1,18 @@
 "use client";
 
+import DesignSelector from "@/app/components/DesignSelector";
 import { Connection, Node, Path } from "@/types";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import ConnectedNodeSearch from "../components/ConnectedNodeSearch";
-import LoadingIndicator from "../components/LoadingIndicator";
-import MermaidChart from "../components/MermaidChart";
-import Search from "../components/Search";
+import ConnectedNodeSearch from "../../components/ConnectedNodeSearch";
+import LoadingIndicator from "../../components/LoadingIndicator";
+import MermaidChart from "../../components/MermaidChart";
+import Search from "../../components/Search";
 
 export default function PathsPage() {
   const searchParams = useSearchParams();
+  const params = useParams();
+  const currentDesign = decodeURIComponent(params.design as string);
   const fromNode = searchParams.get("from");
   const toNode = searchParams.get("to");
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
@@ -152,9 +155,9 @@ export default function PathsPage() {
 
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `/api/paths?from=${encodeURIComponent(fromNode)}&to=${encodeURIComponent(toNode)}`
-        );
+        // Build the URL with the design parameter if available
+        const url = `/api/${currentDesign}/paths?from=${encodeURIComponent(fromNode)}&to=${encodeURIComponent(toNode)}`;
+        const response = await fetch(url);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -176,14 +179,21 @@ export default function PathsPage() {
     };
 
     fetchPaths();
-  }, [fromNode, toNode, generateMermaidDefinition]);
+  }, [fromNode, toNode, generateMermaidDefinition, currentDesign]);
 
   return (
     <main className="min-h-screen flex flex-col">
-      <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
+      <div className="w-full py-4">
         <div className="flex justify-center">
-          <div className="w-full max-w-4xl px-4">
+          <div className="w-full max-w-4xl px-4 relative z-10">
             <div className="flex gap-4 items-center">
+              <div className="w-64">
+                <DesignSelector
+                  onSelect={(design: string) => {
+                    router.push(`/${design}/paths?from=${fromNode}`);
+                  }}
+                />
+              </div>
               <div className="flex-1">
                 <Search
                   initialValue={fromNode || ""}
@@ -191,9 +201,13 @@ export default function PathsPage() {
                   filterType="node"
                   placeholder="Search for source node"
                   onSelect={(name) => {
-                    const params = new URLSearchParams(searchParams.toString());
+                    // Create a new URLSearchParams object with the current design
+                    const params = new URLSearchParams();
                     params.set("from", name);
-                    router.push(`/paths?${params.toString()}`);
+                    if (toNode) {
+                      params.set("to", toNode);
+                    }
+                    router.push(`/${currentDesign}/paths?${params.toString()}`);
                   }}
                 />
               </div>
@@ -204,9 +218,12 @@ export default function PathsPage() {
                   nodeId={fromNode || ""}
                   placeholder="Search for target node"
                   onSelect={(name) => {
-                    const params = new URLSearchParams(searchParams.toString());
+                    const params = new URLSearchParams();
                     params.set("to", name);
-                    router.push(`/paths?${params.toString()}`);
+                    if (fromNode) {
+                      params.set("from", fromNode);
+                    }
+                    router.push(`/${currentDesign}/paths?${params.toString()}`);
                   }}
                 />
               </div>
@@ -216,7 +233,7 @@ export default function PathsPage() {
       </div>
 
       {isLoading ? (
-        <LoadingIndicator message="Loading chart..." className="fixed top-0 left-0 right-0 bottom-0" />
+        <LoadingIndicator message="Loading chart..." className="flex-1" />
       ) : (
         mermaidDefinition && (
           <MermaidChart

@@ -1,7 +1,7 @@
 "use client";
 
 import { SearchProps, SearchResult } from "@/types";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export default function Search({
@@ -19,6 +19,8 @@ export default function Search({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const params = useParams();
+  const currentDesign = decodeURIComponent(params.design as string);
 
   // Update query when initialValue changes
   useEffect(() => {
@@ -49,7 +51,9 @@ export default function Search({
     const fetchSuggestions = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const url = `/api/${currentDesign}/search?q=${encodeURIComponent(query)}`;
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (response.ok) {
@@ -74,7 +78,7 @@ export default function Search({
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, filterType, initialValue]);
+  }, [query, filterType, initialValue, currentDesign]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -92,9 +96,9 @@ export default function Search({
     // Only redirect if disableRedirect is false
     if (!disableRedirect) {
       if (suggestion.type === "net") {
-        router.push(`/nets/${encodeURIComponent(suggestion.name)}`);
+        router.push(`/${currentDesign}/nets/${encodeURIComponent(suggestion.name)}`);
       } else {
-        router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+        router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.name)}`);
       }
     }
   };
@@ -125,9 +129,9 @@ export default function Search({
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
             if (suggestions[selectedIndex].type === "net") {
-              router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+              router.push(`/designs/${currentDesign}/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
             } else {
-              router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+              router.push(`/designs/${currentDesign}/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
             }
           }
         }
@@ -146,9 +150,9 @@ export default function Search({
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
             if (suggestions[selectedIndex].type === "net") {
-              router.push(`/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+              router.push(`/designs/${currentDesign}/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
             } else {
-              router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+              router.push(`/designs/${currentDesign}/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
             }
           }
         }

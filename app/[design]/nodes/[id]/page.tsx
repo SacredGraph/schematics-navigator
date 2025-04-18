@@ -3,13 +3,15 @@
 import { NodeInfo } from "@/types";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import LoadingIndicator from "../../components/LoadingIndicator";
-import MermaidChart from "../../components/MermaidChart";
-import Search from "../../components/Search";
+import DesignSelector from "../../../components/DesignSelector";
+import LoadingIndicator from "../../../components/LoadingIndicator";
+import MermaidChart from "../../../components/MermaidChart";
+import Search from "../../../components/Search";
 
 interface Props {
   params: Promise<{
     id: string;
+    design: string;
   }>;
 }
 
@@ -19,12 +21,15 @@ export default function NodePage({ params }: Props) {
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
+  const currentDesign = decodeURIComponent(resolvedParams.design);
 
   useEffect(() => {
     const fetchNodeInfo = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`);
+        // Build the URL with the design parameter if available
+        const url = `/api/${currentDesign}/nodes/${encodeURIComponent(nodeId)}`;
+        const response = await fetch(url);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -46,7 +51,7 @@ export default function NodePage({ params }: Props) {
     };
 
     fetchNodeInfo();
-  }, [nodeId]);
+  }, [nodeId, currentDesign]);
 
   const generateMermaidDefinition = (data: NodeInfo) => {
     try {
@@ -133,13 +138,24 @@ export default function NodePage({ params }: Props) {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
+      <div className="w-full py-4">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
             <div className="flex gap-4 items-center">
-              <Search initialValue={resolvedParams.id as string} />
+              <div className="w-64">
+                <DesignSelector
+                  onSelect={(design: string) => {
+                    router.push(`/${design}/nodes/${nodeId}`);
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <Search initialValue={resolvedParams.id as string} />
+              </div>
               <button
-                onClick={() => router.push(`/paths?from=${encodeURIComponent(resolvedParams.id as string)}`)}
+                onClick={() => {
+                  router.push(`/${currentDesign}/paths?from=${nodeId}`);
+                }}
                 className="cursor-pointer px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
                 Search paths from here

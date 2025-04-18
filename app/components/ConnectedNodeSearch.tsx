@@ -1,7 +1,7 @@
 "use client";
 
 import { ConnectedNodeSearchProps, SearchResult } from "@/types";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export default function ConnectedNodeSearch({
@@ -19,6 +19,8 @@ export default function ConnectedNodeSearch({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const params = useParams();
+  const currentDesign = decodeURIComponent(params.design as string);
 
   // Update query when initialValue changes
   useEffect(() => {
@@ -54,9 +56,10 @@ export default function ConnectedNodeSearch({
 
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `/api/connected-nodes?source=${encodeURIComponent(nodeId)}&q=${encodeURIComponent(query)}`
-        );
+        const url = `/api/${currentDesign}/connected-nodes?source=${encodeURIComponent(nodeId)}&q=${encodeURIComponent(
+          query
+        )}`;
+        const response = await fetch(url);
         const data = await response.json();
 
         if (response.ok) {
@@ -75,7 +78,7 @@ export default function ConnectedNodeSearch({
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, nodeId]);
+  }, [query, nodeId, currentDesign]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -92,10 +95,12 @@ export default function ConnectedNodeSearch({
 
     // Only redirect if disableRedirect is false
     if (!disableRedirect) {
-      const searchParams = new URLSearchParams(window.location.search);
-      searchParams.set("to", suggestion.name);
+      // Preserve any other existing parameters
+      const otherParams = new URLSearchParams();
+      otherParams.set("from", nodeId);
+      otherParams.set("to", suggestion.name);
 
-      router.push(`/paths?${searchParams.toString()}`);
+      router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
     }
   };
 
@@ -124,9 +129,12 @@ export default function ConnectedNodeSearch({
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            const searchParams = new URLSearchParams(window.location.search);
-            searchParams.set("to", suggestions[selectedIndex].name);
-            router.push(`/paths?${searchParams.toString()}`);
+            // Preserve any other existing parameters
+            const otherParams = new URLSearchParams();
+            otherParams.set("from", nodeId);
+            otherParams.set("to", suggestions[selectedIndex].name);
+
+            router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
           }
         }
         break;
@@ -143,9 +151,12 @@ export default function ConnectedNodeSearch({
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            const searchParams = new URLSearchParams(window.location.search);
-            searchParams.set("to", suggestions[selectedIndex].name);
-            router.push(`/paths?${searchParams.toString()}`);
+            // Preserve any other existing parameters
+            const otherParams = new URLSearchParams();
+            otherParams.set("from", nodeId);
+            otherParams.set("to", suggestions[selectedIndex].name);
+
+            router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
           }
         }
         break;

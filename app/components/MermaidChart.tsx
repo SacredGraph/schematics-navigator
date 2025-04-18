@@ -2,7 +2,7 @@
 
 import { MermaidChartProps } from "@/types";
 import mermaid from "mermaid";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import panzoom from "panzoom";
 import { useEffect, useRef } from "react";
 
@@ -10,6 +10,8 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
   const mermaidRef = useRef<HTMLDivElement>(null);
   const panzoomRef = useRef<any>(null);
   const router = useRouter();
+  const params = useParams();
+  const currentDesign = decodeURIComponent(params.design as string);
 
   const handleResetView = () => {
     const svgElement = mermaidRef.current?.querySelector("svg");
@@ -164,9 +166,9 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
 
                     // Redirect to the appropriate route using the node name
                     if (isNet) {
-                      router.push(`/nets/${nodeName}`);
+                      router.push(`/${currentDesign}/nets/${nodeName}`);
                     } else {
-                      router.push(`/nodes/${nodeName}`);
+                      router.push(`/${currentDesign}/nodes/${nodeName}`);
                     }
                   });
 
@@ -184,7 +186,7 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
           }
         });
     }
-  }, [chartDefinition, router]);
+  }, [chartDefinition, router, currentDesign]);
 
   return (
     <>

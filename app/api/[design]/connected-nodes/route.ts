@@ -1,10 +1,12 @@
 import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ design: string }> }) {
+  const resolvedParams = await params;
   const searchParams = request.nextUrl.searchParams;
   const sourceNode = searchParams.get("source");
   const query = searchParams.get("q");
+  const design = decodeURIComponent(resolvedParams.design);
 
   if (!sourceNode) {
     return NextResponse.json({ error: "Source node is required" }, { status: 400 });
@@ -13,10 +15,10 @@ export async function GET(request: NextRequest) {
   const session = getSession();
 
   try {
-    // Find all nodes connected to the source node through nets
+    // Find all nodes connected to the source node through nets within the specified design
     const result = await session.run(
       `
-      MATCH (source:SchematicNode { name: $sourceNode })
+      MATCH (source:SchematicNode { name: $sourceNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d:SchematicDesign { name: $design })
       CALL apoc.path.spanningTree(source, { labelFilter: "-SchematicPart" }) YIELD path
       WITH nodes(path) as nodes
       UNWIND nodes as node
@@ -30,6 +32,7 @@ export async function GET(request: NextRequest) {
       {
         sourceNode: sourceNode.toUpperCase(),
         query: query ? query.toUpperCase() : null,
+        design,
       }
     );
 
