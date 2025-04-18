@@ -76,6 +76,11 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
         .netStyle:hover path {
           stroke: #000000;
         }
+
+        .error-icon,
+        .error-text {
+          display: none;
+        }
       `,
       flowchart: {
         htmlLabels: true,

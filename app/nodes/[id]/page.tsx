@@ -3,6 +3,7 @@
 import { NodeInfo } from "@/types";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import LoadingIndicator from "../../components/LoadingIndicator";
 import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
@@ -16,22 +17,31 @@ export default function NodePage({ params }: Props) {
   const resolvedParams = use(params);
   const nodeId = resolvedParams.id;
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
     const fetchNodeInfo = async () => {
-      const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`);
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch node information");
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch node information");
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      // Generate Mermaid chart definition
-      if (data && data.node && data.node.pins) {
-        generateMermaidDefinition(data);
+        // Generate Mermaid chart definition
+        if (data && data.node && data.node.pins) {
+          generateMermaidDefinition(data);
+        }
+      } catch (error) {
+        console.error("Error fetching node information:", error);
+        setMermaidDefinition("");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -139,11 +149,15 @@ export default function NodePage({ params }: Props) {
         </div>
       </div>
 
-      {mermaidDefinition && (
-        <MermaidChart
-          chartDefinition={mermaidDefinition}
-          className="w-full h-full flex-1 flex items-center justify-center"
-        />
+      {isLoading ? (
+        <LoadingIndicator message="Loading node information..." className="flex-1" />
+      ) : (
+        mermaidDefinition && (
+          <MermaidChart
+            chartDefinition={mermaidDefinition}
+            className="w-full h-full flex-1 flex items-center justify-center"
+          />
+        )
       )}
     </main>
   );

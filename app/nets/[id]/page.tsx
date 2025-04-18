@@ -3,6 +3,7 @@
 import { NetInfo } from "@/types";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import LoadingIndicator from "../../components/LoadingIndicator";
 import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
@@ -16,22 +17,31 @@ export default function NetPage({ params }: Props) {
   const resolvedParams = use(params);
   const netId = resolvedParams.id;
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
     const fetchNetInfo = async () => {
-      const response = await fetch(`/api/nets/${encodeURIComponent(netId)}`);
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/nets/${encodeURIComponent(netId)}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch net information");
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch net information");
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      // Generate Mermaid chart definition
-      if (data?.net?.pins) {
-        generateMermaidDefinition(data.net);
+        // Generate Mermaid chart definition
+        if (data?.net?.pins) {
+          generateMermaidDefinition(data.net);
+        }
+      } catch (error) {
+        console.error("Error fetching net information:", error);
+        setMermaidDefinition("");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -130,22 +140,20 @@ export default function NetPage({ params }: Props) {
           <div className="w-full max-w-4xl px-4">
             <div className="flex gap-4 items-center">
               <Search initialValue={resolvedParams.id as string} />
-              <button
-                onClick={() => router.push(`/paths?from=${encodeURIComponent(resolvedParams.id as string)}`)}
-                className="cursor-pointer px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
-              >
-                Search paths from here
-              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {mermaidDefinition && (
-        <MermaidChart
-          chartDefinition={mermaidDefinition}
-          className="w-full h-full flex-1 flex items-center justify-center"
-        />
+      {isLoading ? (
+        <LoadingIndicator message="Loading net information..." className="flex-1" />
+      ) : (
+        mermaidDefinition && (
+          <MermaidChart
+            chartDefinition={mermaidDefinition}
+            className="w-full h-full flex-1 flex items-center justify-center"
+          />
+        )
       )}
     </main>
   );

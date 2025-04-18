@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/neo4j";
-import { Connection, Node, NodePart } from "@/types";
+import { Connection, Node } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -16,15 +16,22 @@ export async function GET(request: NextRequest) {
 
     const result = await session.run(
       `
-        // MATCH (a:SchematicNode { name: $fromNode })
-        // MATCH (b:SchematicNode { name: $toNode })
-        // CALL apoc.path.spanningTree(a, { labelFilter: "-SchematicPart", terminatorNodes: [b], bfs: false }) YIELD path
-        MATCH (source:SchematicNode { name: $fromNode })
-        MATCH (target:SchematicNode { name: $toNode })
-        MATCH path=(source)((:SchematicNode)-[:HAS_PIN]->(:SchematicNodePin)<-[:CONNECTS]-(:SchematicNet)-[:CONNECTS]->(:SchematicNodePin)<-[:HAS_PIN]-(:SchematicNode)){1,3}(target)
+        MATCH (a:SchematicNode { name: $fromNode })
+        MATCH (b:SchematicNode { name: $toNode })
+        // CALL apoc.path.spanningTree(a, { labelFilter: "-SchematicPart", terminatorNodes: [b], bfs: true }) YIELD path
+
+        // CALL apoc.path.expandConfig(a, { uniqueness: "NODE_GLOBAL", relationshipFilter: "HAS_PIN|CONNECTS", terminatorNodes: [b], limit: 10 }) YIELD path
+
+        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "HAS_PIN|CONNECTS", terminatorNodes: [b], bfs: false }) YIELD path
+
+        // MATCH (source:SchematicNode { name: $fromNode })
+        // MATCH (target:SchematicNode { name: $toNode })
+        // WITH source, target
+        // MATCH path=(source)((start:SchematicNode)-[:HAS_PIN]->(:SchematicNodePin)<-[:CONNECTS]-(:SchematicNet)-[:CONNECTS]->(:SchematicNodePin)<-[:HAS_PIN]-(:SchematicNode) WHERE start <> target){1,10}(target)
         WHERE NOT apoc.coll.containsDuplicates(nodes(path))
         WITH path
         LIMIT 10
+
         MATCH (node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
         WHERE node IN nodes(path)
         RETURN path, collect({node: node.name, part: part.name}) as nodeParts
@@ -34,14 +41,16 @@ export async function GET(request: NextRequest) {
 
     const nodes = new Map<string, Node>();
     const connections: Connection[] = [];
-    const nodeParts = new Map((result.records[0].get("nodeParts") as NodePart[]).map((np) => [np.node, np.part]));
+    // const nodeParts = new Map((result.records[0].get("nodeParts") as NodePart[]).map((np) => [np.node, np.part]));
 
     // Create a Set to track unique connections
     const uniqueConnections = new Set<string>();
 
-    result.records.forEach((record) => {
+    result.records.forEach((record, pathIndex) => {
       const path = record.get("path");
       const segments = path.segments;
+
+      console.log("path", pathIndex);
 
       segments.forEach((segment: any, index: number) => {
         // Add start node
@@ -49,7 +58,7 @@ export async function GET(request: NextRequest) {
           nodes.set(segment.start.properties.name, {
             name: segment.start.properties.name,
             type: "node",
-            partName: nodeParts.get(segment.start.properties.name),
+            // partName: nodeParts.get(segment.start.properties.name),
           });
         }
 
@@ -58,7 +67,7 @@ export async function GET(request: NextRequest) {
           nodes.set(segment.end.properties.name, {
             name: segment.end.properties.name,
             type: "node",
-            partName: nodeParts.get(segment.end.properties.name),
+            // partName: nodeParts.get(segment.end.properties.name),
           });
         }
 
@@ -116,6 +125,7 @@ export async function GET(request: NextRequest) {
             // Only add the connection if it's not already in our set
             if (!uniqueConnections.has(connectionKey)) {
               uniqueConnections.add(connectionKey);
+
               connections.push({
                 from: segment.start.properties.name,
                 to: nodeName || segment.end.properties.name,
