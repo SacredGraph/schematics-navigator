@@ -42,9 +42,10 @@ export default function DesignSelector({ onSelect }: { onSelect: (design: string
     <div className="w-full">
       <select
         value={currentDesign || ""}
-        onChange={(e) => onSelect(e.target.value)}
+        onChange={(e) => e.target.value && onSelect(e.target.value)}
         className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg appearance-none"
       >
+        <option value="">Select a design</option>
         {designs.map((design) => (
           <option key={design.name} value={design.name}>
             {design.name}
