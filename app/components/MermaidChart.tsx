@@ -64,7 +64,7 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
 
               if (svgElement) {
                 // Initialize new panzoom instance
-                panzoomRef.current = panzoom(mermaidRef.current);
+                panzoomRef.current = panzoom(mermaidRef.current as HTMLElement);
 
                 // Find all node elements (rectangles, circles, etc.)
                 const nodeElements = svgElement.querySelectorAll(".node");
