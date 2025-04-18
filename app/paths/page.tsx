@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ConnectedNodeSearch from "../components/ConnectedNodeSearch";
 import MermaidChart from "../components/MermaidChart";
@@ -26,21 +26,37 @@ interface Path {
 
 export default function PathsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [fromNode, setFromNode] = useState<string>("");
   const [toNode, setToNode] = useState<string>("");
   const [paths, setPaths] = useState<Path[]>([]);
   const [error, setError] = useState<string>("");
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
 
-  // Set initial fromNode from URL parameter
+  // Set initial fromNode and toNode from URL parameters
   useEffect(() => {
     const fromParam = searchParams.get("from");
-    console.log("URL from param:", fromParam);
+    const toParam = searchParams.get("to");
     if (fromParam) {
       setFromNode(fromParam);
-      console.log("Setting fromNode to:", fromParam);
+    }
+    if (toParam) {
+      setToNode(toParam);
     }
   }, [searchParams]);
+
+  // Update URL when nodes change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (fromNode) {
+      params.set("from", fromNode);
+    }
+    if (toNode) {
+      params.set("to", toNode);
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : "";
+    router.replace(newUrl, { scroll: false });
+  }, [fromNode, toNode, router]);
 
   // Log when fromNode changes
   useEffect(() => {

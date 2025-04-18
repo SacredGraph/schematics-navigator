@@ -141,9 +141,9 @@ export default function NodeDetailsPage() {
               <Search initialValue={params.id as string} />
               <button
                 onClick={() => router.push(`/paths?from=${encodeURIComponent(params.id as string)}`)}
-                className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                className="cursor-pointer px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
-                Find Paths From Here
+                Search paths from here
               </button>
             </div>
           </div>
