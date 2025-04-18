@@ -131,7 +131,7 @@ export default function NetDetailsPage() {
       <div className="w-full py-4">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
-            <Search />
+            <Search initialValue={params.id as string} />
           </div>
         </div>
       </div>

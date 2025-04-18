@@ -8,6 +8,7 @@ interface SearchProps {
   onSelect?: (name: string) => void;
   disableRedirect?: boolean;
   filterType?: "node" | "net" | "all";
+  initialValue?: string;
 }
 
 interface SearchResult {
@@ -20,8 +21,9 @@ export default function Search({
   onSelect,
   disableRedirect = false,
   filterType = "all",
+  initialValue = "",
 }: SearchProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -29,6 +31,11 @@ export default function Search({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Update query when initialValue changes
+  useEffect(() => {
+    setQuery(initialValue);
+  }, [initialValue]);
 
   // Handle clicks outside the search component to close suggestions
   useEffect(() => {
@@ -52,8 +59,10 @@ export default function Search({
   // Fetch suggestions when query changes
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (!query.length) {
+      // Don't show suggestions if the query matches the initialValue
+      if (query === initialValue) {
         setSuggestions([]);
+        setShowSuggestions(false);
         return;
       }
 
@@ -85,7 +94,7 @@ export default function Search({
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, filterType]);
+  }, [query, filterType, initialValue]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);

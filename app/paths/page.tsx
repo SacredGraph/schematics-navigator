@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import ConnectedNodeSearch from "../components/ConnectedNodeSearch";
 import MermaidChart from "../components/MermaidChart";
 import Search from "../components/Search";
 
@@ -21,11 +23,27 @@ interface Path {
 }
 
 export default function PathsPage() {
+  const searchParams = useSearchParams();
   const [fromNode, setFromNode] = useState<string>("");
   const [toNode, setToNode] = useState<string>("");
   const [paths, setPaths] = useState<Path[]>([]);
   const [error, setError] = useState<string>("");
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+
+  // Set initial fromNode from URL parameter
+  useEffect(() => {
+    const fromParam = searchParams.get("from");
+    console.log("URL from param:", fromParam);
+    if (fromParam) {
+      setFromNode(fromParam);
+      console.log("Setting fromNode to:", fromParam);
+    }
+  }, [searchParams]);
+
+  // Log when fromNode changes
+  useEffect(() => {
+    console.log("fromNode state changed to:", fromNode);
+  }, [fromNode]);
 
   const handleSearch = async () => {
     if (!fromNode || !toNode) {
@@ -55,6 +73,12 @@ export default function PathsPage() {
       setMermaidDefinition("");
     }
   };
+
+  useEffect(() => {
+    if (fromNode && toNode) {
+      handleSearch();
+    }
+  }, [fromNode, toNode]);
 
   const generateMermaidDefinition = (path: Path) => {
     try {
@@ -88,14 +112,19 @@ export default function PathsPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl px-4">
             <div className="flex flex-row gap-4">
-              <Search onSelect={setFromNode} placeholder="Select source node" disableRedirect filterType="node" />
-              <Search onSelect={setToNode} placeholder="Select target node" disableRedirect filterType="node" />
-              <button
-                onClick={handleSearch}
-                className="cursor-pointer w-48 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Search
-              </button>
+              <Search
+                onSelect={setFromNode}
+                placeholder="Select source node"
+                disableRedirect
+                filterType="node"
+                initialValue={fromNode}
+              />
+              <ConnectedNodeSearch
+                sourceNode={fromNode}
+                onSelect={setToNode}
+                placeholder="Select target node"
+                initialValue={toNode}
+              />
             </div>
           </div>
         </div>

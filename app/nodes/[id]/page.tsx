@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
@@ -26,6 +26,7 @@ export default function NodeDetailsPage() {
   const params = useParams();
   const nodeId = params.id as string;
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchNodeInfo = async () => {
@@ -131,7 +132,17 @@ export default function NodeDetailsPage() {
       <div className="w-full py-4">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
-            <Search />
+            <div className="flex gap-4 items-center">
+              <div className="flex-1">
+                <Search initialValue={params.id as string} />
+              </div>
+              <button
+                onClick={() => router.push(`/paths?from=${encodeURIComponent(params.id as string)}`)}
+                className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+              >
+                Find Paths From Here
+              </button>
+            </div>
           </div>
         </div>
       </div>

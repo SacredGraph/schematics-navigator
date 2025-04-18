@@ -104,8 +104,9 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
 
                 // Add click event listener
                 node.addEventListener("click", () => {
-                  // Determine if this is a net or node based on the node text or ID
-                  const isNet = nodeText.toLowerCase().includes("net") || nodeId.toLowerCase().includes("net");
+                  // Determine if this is a net or node based on the node ID
+                  // In our Mermaid definition, nets are prefixed with 'net' in their ID
+                  const isNet = node.classList.contains("netStyle");
 
                   // Redirect to the appropriate route using the node name
                   if (isNet) {
