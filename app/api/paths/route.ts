@@ -4,6 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 interface Node {
   name: string;
   type: "node" | "net";
+  partName?: string;
+}
+
+interface NodePart {
+  node: string;
+  part: string;
 }
 
 interface Connection {
@@ -38,7 +44,10 @@ export async function GET(request: NextRequest) {
         MATCH (a:SchematicNode { name: $fromNode })
         MATCH (b:SchematicNode { name: $toNode })
         CALL apoc.path.spanningTree(a, { labelFilter: "-SchematicPart", terminatorNodes: [b], bfs: false }) YIELD path
-        RETURN path
+        WITH path
+        MATCH (node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
+        WHERE node IN nodes(path)
+        RETURN path, collect({node: node.name, part: part.name}) as nodeParts
       `,
       { fromNode: fromNode.toUpperCase(), toNode: toNode.toUpperCase() }
     );
@@ -49,6 +58,7 @@ export async function GET(request: NextRequest) {
 
     const nodes = new Map<string, Node>();
     const connections: Connection[] = [];
+    const nodeParts = new Map((result.records[0].get("nodeParts") as NodePart[]).map((np) => [np.node, np.part]));
 
     result.records.forEach((record) => {
       const path = record.get("path");
@@ -60,6 +70,7 @@ export async function GET(request: NextRequest) {
           nodes.set(segment.start.properties.name, {
             name: segment.start.properties.name,
             type: "node",
+            partName: nodeParts.get(segment.start.properties.name),
           });
         }
 
@@ -68,6 +79,7 @@ export async function GET(request: NextRequest) {
           nodes.set(segment.end.properties.name, {
             name: segment.end.properties.name,
             type: "node",
+            partName: nodeParts.get(segment.end.properties.name),
           });
         }
 

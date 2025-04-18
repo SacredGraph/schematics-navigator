@@ -9,6 +9,7 @@ import Search from "../components/Search";
 interface Node {
   name: string;
   type: "node" | "net";
+  partName?: string;
 }
 
 interface Connection {
@@ -90,7 +91,9 @@ export default function PathsPage() {
 
       // Add all nodes with their assigned indices
       path.nodes.forEach((node) => {
-        definition += `  ${node.name}["${node.name}"]\n`;
+        const nodeLabel =
+          node.type === "node" && node.partName ? `${node.name}<br/><small>(${node.partName})</small>` : node.name;
+        definition += `  ${node.name}["${nodeLabel}"]\n`;
         definition += `  class ${node.name} ${node.type === "node" ? "nodeStyle" : "netStyle"}\n`;
       });
 
