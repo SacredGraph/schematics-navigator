@@ -29,22 +29,21 @@ export interface NetInfo {
 }
 
 export interface Node {
-  id: string;
   name: string;
   type: string;
+  partName?: string;
 }
 
 export interface NodePart {
-  id: string;
-  name: string;
-  type: string;
-  nodeId: string;
+  node: string;
+  part: string;
 }
 
 export interface Connection {
   from: string;
   to: string;
-  type: string;
+  pinName: string;
+  pinFriendlyName: string;
 }
 
 export interface Path {

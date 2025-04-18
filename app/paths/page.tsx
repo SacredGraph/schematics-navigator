@@ -3,6 +3,7 @@
 import { Node, Path } from "@/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import ConnectedNodeSearch from "../components/ConnectedNodeSearch";
 import MermaidChart from "../components/MermaidChart";
 import Search from "../components/Search";
 
@@ -49,22 +50,26 @@ export default function PathsPage() {
       // Process all paths and collect unique nodes
       paths.forEach((path) => {
         path.nodes.forEach((node) => {
-          if (!nodeMap.has(node.id)) {
-            nodeMap.set(node.id, node);
+          if (!nodeMap.has(node.name)) {
+            nodeMap.set(node.name, node);
           }
         });
       });
 
       // Add all unique nodes to the diagram
       nodeMap.forEach((node) => {
-        definition += `  ${node.id}["${node.name}<br/><small>(${node.type})</small>"]\n`;
-        definition += `  class ${node.id} nodeStyle\n`;
+        definition += `  ${node.name}["${node.name}${
+          node.partName ? `<br/><small>(${node.partName})</small>` : ""
+        }"]\n`;
+        definition += `  class ${node.name} nodeStyle\n`;
       });
 
       // Add all connections
       paths.forEach((path) => {
         path.connections.forEach((connection) => {
-          definition += `  ${connection.from} ---|"${connection.type}"| ${connection.to}\n`;
+          definition += `  ${connection.from} ---|"Pin ${connection.pinName}${
+            connection.pinFriendlyName ? ` / ${connection.pinFriendlyName}` : ""
+          }"| ${connection.to}\n`;
           definition += `  class ${connection.from}${connection.to} connectionStyle\n`;
         });
       });
@@ -85,6 +90,8 @@ export default function PathsPage() {
               <div className="flex-1">
                 <Search
                   initialValue={fromNode || ""}
+                  disableRedirect
+                  filterType="node"
                   placeholder="Search for source node"
                   onSelect={(name) => {
                     const params = new URLSearchParams(searchParams.toString());
@@ -94,8 +101,10 @@ export default function PathsPage() {
                 />
               </div>
               <div className="flex-1">
-                <Search
+                <ConnectedNodeSearch
                   initialValue={toNode || ""}
+                  disableRedirect
+                  nodeId={fromNode || ""}
                   placeholder="Search for target node"
                   onSelect={(name) => {
                     const params = new URLSearchParams(searchParams.toString());

@@ -4,8 +4,14 @@ import { ConnectedNodeSearchProps, SearchResult } from "@/types";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect = false }: ConnectedNodeSearchProps) {
-  const [query, setQuery] = useState("");
+export default function ConnectedNodeSearch({
+  nodeId,
+  placeholder = "Select target node",
+  onSelect,
+  disableRedirect = false,
+  initialValue = "",
+}: ConnectedNodeSearchProps) {
+  const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -16,8 +22,8 @@ export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect 
 
   // Update query when initialValue changes
   useEffect(() => {
-    setQuery(nodeId);
-  }, [nodeId]);
+    setQuery(initialValue);
+  }, [initialValue]);
 
   // Handle clicks outside the search component to close suggestions
   useEffect(() => {
@@ -86,7 +92,10 @@ export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect 
 
     // Only redirect if disableRedirect is false
     if (!disableRedirect) {
-      router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set("to", suggestion.name);
+
+      router.push(`/paths?${searchParams.toString()}`);
     }
   };
 
@@ -115,7 +124,9 @@ export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect 
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set("to", suggestions[selectedIndex].name);
+            router.push(`/paths?${searchParams.toString()}`);
           }
         }
         break;
@@ -132,7 +143,9 @@ export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect 
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set("to", suggestions[selectedIndex].name);
+            router.push(`/paths?${searchParams.toString()}`);
           }
         }
         break;
@@ -153,7 +166,7 @@ export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect 
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setShowSuggestions(true)}
-          placeholder="Select target node"
+          placeholder={placeholder}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
         />
 

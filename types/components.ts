@@ -17,7 +17,9 @@ export interface SearchResult {
 }
 
 export interface ConnectedNodeSearchProps {
+  placeholder?: string;
   nodeId: string;
   onSelect?: (name: string) => void;
   disableRedirect?: boolean;
+  initialValue?: string;
 }

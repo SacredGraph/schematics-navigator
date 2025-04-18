@@ -81,6 +81,7 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
         htmlLabels: true,
         curve: "basis",
         rankSpacing: 200,
+        diagramPadding: 100,
       },
     });
 
