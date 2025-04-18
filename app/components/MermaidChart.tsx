@@ -47,6 +47,39 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
           text-align: center;
           min-width: 30px;
         }
+
+        .node rect,
+        .node circle,
+        .node ellipse,
+        .node polygon,
+        .node path {
+          stroke-width: 1px;
+        }
+
+        .node:hover rect,
+        .node:hover circle,
+        .node:hover ellipse,
+        .node:hover polygon,
+        .node:hover path {
+          stroke-width: 3px;
+          filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.3));
+        }
+
+        .nodeStyle:hover rect,
+        .nodeStyle:hover circle,
+        .nodeStyle:hover ellipse,
+        .nodeStyle:hover polygon,
+        .nodeStyle:hover path {
+          stroke: #006400;
+        }
+
+        .netStyle:hover rect,
+        .netStyle:hover circle,
+        .netStyle:hover ellipse,
+        .netStyle:hover polygon,
+        .netStyle:hover path {
+          stroke: #000000;
+        }
       `,
       flowchart: {
         htmlLabels: true,
