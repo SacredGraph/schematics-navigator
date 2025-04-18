@@ -1,75 +1,22 @@
 "use client";
 
+import { Node, Path } from "@/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import ConnectedNodeSearch from "../components/ConnectedNodeSearch";
 import MermaidChart from "../components/MermaidChart";
 import Search from "../components/Search";
 
-interface Node {
-  name: string;
-  type: "node" | "net";
-  partName?: string;
-}
-
-interface Connection {
-  from: string;
-  to: string;
-  pinName: string;
-  pinFriendlyName: string;
-}
-
-interface Path {
-  nodes: Node[];
-  connections: Connection[];
-}
-
 export default function PathsPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [fromNode, setFromNode] = useState<string>("");
-  const [toNode, setToNode] = useState<string>("");
-  const [paths, setPaths] = useState<Path[]>([]);
-  const [error, setError] = useState<string>("");
+  const fromNode = searchParams.get("from");
+  const toNode = searchParams.get("to");
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+  const router = useRouter();
 
-  // Set initial fromNode and toNode from URL parameters
   useEffect(() => {
-    const fromParam = searchParams.get("from");
-    const toParam = searchParams.get("to");
-    if (fromParam) {
-      setFromNode(fromParam);
-    }
-    if (toParam) {
-      setToNode(toParam);
-    }
-  }, [searchParams]);
+    const fetchPaths = async () => {
+      if (!fromNode || !toNode) return;
 
-  // Update URL when nodes change
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (fromNode) {
-      params.set("from", fromNode);
-    }
-    if (toNode) {
-      params.set("to", toNode);
-    }
-    const newUrl = params.toString() ? `?${params.toString()}` : "";
-    router.replace(newUrl, { scroll: false });
-  }, [fromNode, toNode, router]);
-
-  // Log when fromNode changes
-  useEffect(() => {
-    console.log("fromNode state changed to:", fromNode);
-  }, [fromNode]);
-
-  const handleSearch = async () => {
-    if (!fromNode || !toNode) {
-      setError("Please select both source and target nodes");
-      return;
-    }
-
-    try {
       const response = await fetch(`/api/paths?from=${encodeURIComponent(fromNode)}&to=${encodeURIComponent(toNode)}`);
 
       if (!response.ok) {
@@ -78,47 +25,48 @@ export default function PathsPage() {
       }
 
       const data = await response.json();
-      setPaths(data.paths);
-      setError("");
 
-      // Generate Mermaid chart definition for the first path
-      if (data.paths && data.paths.length > 0) {
-        generateMermaidDefinition(data.paths[0]);
+      // Generate Mermaid chart definition
+      if (data && data.paths) {
+        generateMermaidDefinition(data.paths);
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-      setPaths([]);
-      setMermaidDefinition("");
-    }
-  };
+    };
 
-  useEffect(() => {
-    if (fromNode && toNode) {
-      handleSearch();
-    }
+    fetchPaths();
   }, [fromNode, toNode]);
 
-  const generateMermaidDefinition = (path: Path) => {
+  const generateMermaidDefinition = (paths: Path[]) => {
     try {
       let definition = `graph LR\n`;
 
-      // Define styles for nodes and nets
+      // Define styles for nodes and connections
       definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
-      definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
+      definition += `  classDef connectionStyle stroke:#000000,color:#000000\n`;
 
-      // Add all nodes with their assigned indices
-      path.nodes.forEach((node) => {
-        const nodeLabel =
-          node.type === "node" && node.partName ? `${node.name}<br/><small>(${node.partName})</small>` : node.name;
-        definition += `  ${node.name}["${nodeLabel}"]\n`;
-        definition += `  class ${node.name} ${node.type === "node" ? "nodeStyle" : "netStyle"}\n`;
+      // Create a map to track unique nodes
+      const nodeMap = new Map<string, Node>();
+
+      // Process all paths and collect unique nodes
+      paths.forEach((path) => {
+        path.nodes.forEach((node) => {
+          if (!nodeMap.has(node.id)) {
+            nodeMap.set(node.id, node);
+          }
+        });
       });
 
-      // Add connections in the order they appear in the path
-      path.connections.forEach((conn) => {
-        definition += `  ${conn.from} ---|"Pin ${conn.pinName}${
-          conn.pinFriendlyName ? ` / ${conn.pinFriendlyName}` : ""
-        }"| ${conn.to}\n`;
+      // Add all unique nodes to the diagram
+      nodeMap.forEach((node) => {
+        definition += `  ${node.id}["${node.name}<br/><small>(${node.type})</small>"]\n`;
+        definition += `  class ${node.id} nodeStyle\n`;
+      });
+
+      // Add all connections
+      paths.forEach((path) => {
+        path.connections.forEach((connection) => {
+          definition += `  ${connection.from} ---|"${connection.type}"| ${connection.to}\n`;
+          definition += `  class ${connection.from}${connection.to} connectionStyle\n`;
+        });
       });
 
       setMermaidDefinition(definition);
@@ -131,22 +79,31 @@ export default function PathsPage() {
   return (
     <main className="min-h-screen flex flex-col">
       <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-2xl px-4">
-            <div className="flex flex-row gap-4">
-              <Search
-                onSelect={setFromNode}
-                placeholder="Select source node"
-                disableRedirect
-                filterType="node"
-                initialValue={fromNode}
-              />
-              <ConnectedNodeSearch
-                sourceNode={fromNode}
-                onSelect={setToNode}
-                placeholder="Select target node"
-                initialValue={toNode}
-              />
+        <div className="flex justify-center">
+          <div className="w-full max-w-4xl px-4">
+            <div className="flex gap-4 items-center">
+              <div className="flex-1">
+                <Search
+                  initialValue={fromNode || ""}
+                  placeholder="Search for source node"
+                  onSelect={(name) => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("from", name);
+                    router.push(`/paths?${params.toString()}`);
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <Search
+                  initialValue={toNode || ""}
+                  placeholder="Search for target node"
+                  onSelect={(name) => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("to", name);
+                    router.push(`/paths?${params.toString()}`);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -1,9 +1,9 @@
 import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: nodeId } = await context.params;
-  const nodeIdUpper = nodeId.toUpperCase();
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const nodeId = resolvedParams.id.toUpperCase();
 
   if (!nodeId) {
     return NextResponse.json({ error: "Node ID is required" }, { status: 400 });
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                 }
               }) as pins
        LIMIT 1`,
-      { nodeId: nodeIdUpper }
+      { nodeId: nodeId }
     );
 
     if (result.records.length === 0) {

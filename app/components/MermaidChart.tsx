@@ -1,14 +1,10 @@
 "use client";
 
+import { MermaidChartProps } from "@/types";
 import mermaid from "mermaid";
 import { useRouter } from "next/navigation";
 import panzoom from "panzoom";
 import { useEffect, useRef } from "react";
-
-interface MermaidChartProps {
-  chartDefinition: string;
-  className?: string;
-}
 
 export default function MermaidChart({ chartDefinition, className = "" }: MermaidChartProps) {
   const mermaidRef = useRef<HTMLDivElement>(null);

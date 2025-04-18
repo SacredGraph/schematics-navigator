@@ -1,36 +1,23 @@
 "use client";
 
+import { ConnectedNodeSearchProps, SearchResult } from "@/types";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-interface ConnectedNodeSearchProps {
-  sourceNode: string;
-  onSelect: (name: string) => void;
-  placeholder?: string;
-  initialValue?: string;
-}
-
-interface SearchResult {
-  name: string;
-  type: "node";
-}
-
-export default function ConnectedNodeSearch({
-  sourceNode,
-  onSelect,
-  placeholder = "Select target node",
-  initialValue = "",
-}: ConnectedNodeSearchProps) {
-  const [query, setQuery] = useState(initialValue);
+export default function ConnectedNodeSearch({ nodeId, onSelect, disableRedirect = false }: ConnectedNodeSearchProps) {
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Update query when initialValue changes
   useEffect(() => {
-    setQuery(initialValue);
-  }, [initialValue]);
+    setQuery(nodeId);
+  }, [nodeId]);
 
   // Handle clicks outside the search component to close suggestions
   useEffect(() => {
@@ -54,7 +41,7 @@ export default function ConnectedNodeSearch({
   // Fetch suggestions when query changes
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (!sourceNode) {
+      if (!nodeId) {
         setSuggestions([]);
         return;
       }
@@ -62,7 +49,7 @@ export default function ConnectedNodeSearch({
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/connected-nodes?source=${encodeURIComponent(sourceNode)}&q=${encodeURIComponent(query)}`
+          `/api/connected-nodes?source=${encodeURIComponent(nodeId)}&q=${encodeURIComponent(query)}`
         );
         const data = await response.json();
 
@@ -82,7 +69,7 @@ export default function ConnectedNodeSearch({
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, sourceNode, initialValue]);
+  }, [query, nodeId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -91,7 +78,16 @@ export default function ConnectedNodeSearch({
   const handleSuggestionClick = (suggestion: SearchResult) => {
     setQuery(suggestion.name);
     setShowSuggestions(false);
-    onSelect(suggestion.name);
+
+    // Call the onSelect callback if provided
+    if (onSelect) {
+      onSelect(suggestion.name);
+    }
+
+    // Only redirect if disableRedirect is false
+    if (!disableRedirect) {
+      router.push(`/nodes/${encodeURIComponent(suggestion.name)}`);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -107,12 +103,37 @@ export default function ConnectedNodeSearch({
         setSelectedIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : prevIndex));
         break;
       case "Tab":
+        e.preventDefault();
+        if (suggestions[selectedIndex]) {
+          setQuery(suggestions[selectedIndex].name);
+          setShowSuggestions(false);
+
+          // Call the onSelect callback if provided
+          if (onSelect) {
+            onSelect(suggestions[selectedIndex].name);
+          }
+
+          // Only redirect if disableRedirect is false
+          if (!disableRedirect) {
+            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          }
+        }
+        break;
       case "Enter":
         e.preventDefault();
         if (suggestions[selectedIndex]) {
           setQuery(suggestions[selectedIndex].name);
           setShowSuggestions(false);
-          onSelect(suggestions[selectedIndex].name);
+
+          // Call the onSelect callback if provided
+          if (onSelect) {
+            onSelect(suggestions[selectedIndex].name);
+          }
+
+          // Only redirect if disableRedirect is false
+          if (!disableRedirect) {
+            router.push(`/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+          }
         }
         break;
       case "Escape":
@@ -123,15 +144,16 @@ export default function ConnectedNodeSearch({
   };
 
   return (
-    <div className="w-full" ref={searchRef}>
+    <div className="w-full max-w-2xl mx-auto" ref={searchRef}>
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setShowSuggestions(true)}
-          placeholder={placeholder}
+          placeholder="Select target node"
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
         />
 
@@ -143,7 +165,7 @@ export default function ConnectedNodeSearch({
 
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-            <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">Connected Nodes</div>
+            <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">Nodes</div>
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}

@@ -1,20 +1,8 @@
 "use client";
 
+import { SearchProps, SearchResult } from "@/types";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-interface SearchProps {
-  placeholder?: string;
-  onSelect?: (name: string) => void;
-  disableRedirect?: boolean;
-  filterType?: "node" | "net" | "all";
-  initialValue?: string;
-}
-
-interface SearchResult {
-  name: string;
-  type: "net" | "node";
-}
 
 export default function Search({
   placeholder = "Search by net or node name",

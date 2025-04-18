@@ -1,8 +1,9 @@
 import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const netId = params.id.toUpperCase();
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const netId = resolvedParams.id.toUpperCase();
 
   if (!netId) {
     return NextResponse.json({ error: "Net ID is required" }, { status: 400 });

@@ -1,32 +1,22 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { NetInfo } from "@/types";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
 import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
-interface Pin {
-  pinName: string;
-  pinFriendlyName: string;
-  node: {
-    name: string;
-    part: {
-      name: string;
-    };
-  };
+interface Props {
+  params: Promise<{
+    id: string;
+  }>;
 }
 
-interface NetInfo {
-  net: {
-    name: string;
-    pins: Pin[];
-  };
-}
-
-export default function NetDetailsPage() {
-  const params = useParams();
-  const netId = params.id as string;
+export default function NetPage({ params }: Props) {
+  const resolvedParams = use(params);
+  const netId = resolvedParams.id;
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchNetInfo = async () => {
@@ -40,8 +30,8 @@ export default function NetDetailsPage() {
       const data = await response.json();
 
       // Generate Mermaid chart definition
-      if (data && data.net && data.net.pins) {
-        generateMermaidDefinition(data);
+      if (data?.net?.pins) {
+        generateMermaidDefinition(data.net);
       }
     };
 
@@ -50,8 +40,8 @@ export default function NetDetailsPage() {
 
   const generateMermaidDefinition = (data: NetInfo) => {
     try {
-      const netName = data.net.name;
-      const pins = data.net.pins;
+      const netName = data.name;
+      const pins = data.pins;
 
       let definition = `graph LR\n`;
 
@@ -59,7 +49,7 @@ export default function NetDetailsPage() {
       definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
       definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
 
-      // Add the central net node with styling
+      // Add the central net with styling
       definition += `  net["${netName}"]\n`;
       definition += `  class net netStyle\n`;
 
@@ -74,23 +64,24 @@ export default function NetDetailsPage() {
       >();
 
       // Process all pins and group them by node
-      pins.forEach((pin, index) => {
-        const nodeName = pin.node.name;
-        const partName = pin.node.part.name;
-        const pinName = pin.pinName;
-        const pinFriendlyName = pin.pinFriendlyName;
+      pins
+        .sort((a, b) => a.pinName.localeCompare(b.pinName))
+        .forEach((pin, index) => {
+          const nodeName = pin.node.name;
+          const partName = pin.node.part.name;
+          const pinName = pin.pinName;
 
-        if (!nodeMap.has(nodeName)) {
-          nodeMap.set(nodeName, {
-            nodeName,
-            partName,
-            pins: [],
-          });
-        }
+          if (!nodeMap.has(nodeName)) {
+            nodeMap.set(nodeName, {
+              nodeName,
+              partName,
+              pins: [],
+            });
+          }
 
-        const nodeData = nodeMap.get(nodeName)!;
-        nodeData.pins.push({ pinName: pinName, pinFriendlyName: pinFriendlyName, index });
-      });
+          const nodeData = nodeMap.get(nodeName)!;
+          nodeData.pins.push({ pinName: pinName, pinFriendlyName: pin.pinFriendlyName, index });
+        });
 
       // Split nodes into left and right sides for better layout
       const nodeEntries = Array.from(nodeMap.entries());
@@ -119,9 +110,9 @@ export default function NetDetailsPage() {
 
         // Add connections for each pin
         nodeData.pins.forEach((pin) => {
-          definition += `  net ---|"Pin ${pin.pinName}${
+          definition += `  nodeR${nodeIndex} ---|"Pin ${pin.pinName}${
             pin.pinFriendlyName ? ` / ${pin.pinFriendlyName}` : ""
-          }"| nodeR${nodeIndex}\n`;
+          }"| net\n`;
         });
       });
 
@@ -137,7 +128,15 @@ export default function NetDetailsPage() {
       <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
-            <Search initialValue={params.id as string} />
+            <div className="flex gap-4 items-center">
+              <Search initialValue={resolvedParams.id as string} />
+              <button
+                onClick={() => router.push(`/paths?from=${encodeURIComponent(resolvedParams.id as string)}`)}
+                className="cursor-pointer px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+              >
+                Search paths from here
+              </button>
+            </div>
           </div>
         </div>
       </div>

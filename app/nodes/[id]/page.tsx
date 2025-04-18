@@ -1,31 +1,20 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { NodeInfo } from "@/types";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
 import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
-interface Pin {
-  pinName: string;
-  pinFriendlyName: string;
-  net: {
-    name: string;
-  };
+interface Props {
+  params: Promise<{
+    id: string;
+  }>;
 }
 
-interface NodeInfo {
-  node: {
-    name: string;
-    part: {
-      name: string;
-    };
-    pins: Pin[];
-  };
-}
-
-export default function NodeDetailsPage() {
-  const params = useParams();
-  const nodeId = params.id as string;
+export default function NodePage({ params }: Props) {
+  const resolvedParams = use(params);
+  const nodeId = resolvedParams.id;
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
   const router = useRouter();
 
@@ -138,9 +127,9 @@ export default function NodeDetailsPage() {
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
             <div className="flex gap-4 items-center">
-              <Search initialValue={params.id as string} />
+              <Search initialValue={resolvedParams.id as string} />
               <button
-                onClick={() => router.push(`/paths?from=${encodeURIComponent(params.id as string)}`)}
+                onClick={() => router.push(`/paths?from=${encodeURIComponent(resolvedParams.id as string)}`)}
                 className="cursor-pointer px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
                 Search paths from here

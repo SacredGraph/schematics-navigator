@@ -1,149 +1,73 @@
-import { getSession } from "@/lib/neo4j";
+import { Connection, Node, Path } from "@/types";
+import neo4j from "neo4j-driver";
 import { NextRequest, NextResponse } from "next/server";
 
-interface Node {
-  name: string;
-  type: "node" | "net";
-  partName?: string;
-}
-
-interface NodePart {
-  node: string;
-  part: string;
-}
-
-interface Connection {
-  from: string;
-  to: string;
-  pinName: string;
-  pinFriendlyName: string;
-}
-
-interface Path {
-  nodes: Node[];
-  connections: Connection[];
-}
+const driver = neo4j.driver(
+  process.env.NEO4J_URI || "",
+  neo4j.auth.basic(process.env.NEO4J_USERNAME || "", process.env.NEO4J_PASSWORD || "")
+);
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+  const { searchParams } = new URL(request.url);
   const fromNode = searchParams.get("from");
   const toNode = searchParams.get("to");
 
   if (!fromNode || !toNode) {
-    return NextResponse.json({ error: "Both 'from' and 'to' node IDs are required" }, { status: 400 });
+    return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
   }
 
-  const session = getSession();
-
   try {
-    // Find all paths between the two nodes through nets
+    const session = driver.session();
+
     const result = await session.run(
-      // `MATCH path=(:SchematicNode { name: $fromNode })((:SchematicNode)-->(:SchematicNodePin)<--(a:SchematicNet)-->(:SchematicNodePin)<--(:SchematicNode)){1,}(:SchematicNode { name: $toNode })
-      //  RETURN path
-      //  LIMIT 10`,
       `
-        MATCH (a:SchematicNode { name: $fromNode })
-        MATCH (b:SchematicNode { name: $toNode })
-        CALL apoc.path.spanningTree(a, { labelFilter: "-SchematicPart", terminatorNodes: [b], bfs: false }) YIELD path
-        WITH path
-        MATCH (node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
-        WHERE node IN nodes(path)
-        RETURN path, collect({node: node.name, part: part.name}) as nodeParts
+      MATCH path = shortestPath((from:Node {name: $fromNode})-[*]-(to:Node {name: $toNode}))
+      WHERE all(r IN relationships(path) WHERE type(r) IN ['CONNECTS_TO', 'PART_OF'])
+      RETURN path
       `,
-      { fromNode: fromNode.toUpperCase(), toNode: toNode.toUpperCase() }
+      { fromNode, toNode }
     );
 
-    if (result.records.length === 0) {
-      return NextResponse.json({ error: "No paths found between the specified nodes" }, { status: 404 });
-    }
-
-    const nodes = new Map<string, Node>();
-    const connections: Connection[] = [];
-    const nodeParts = new Map((result.records[0].get("nodeParts") as NodePart[]).map((np) => [np.node, np.part]));
-
-    result.records.forEach((record) => {
+    const paths: Path[] = result.records.map((record) => {
       const path = record.get("path");
-      const segments = path.segments;
+      const nodes: Node[] = [];
+      const connections: Connection[] = [];
 
-      segments.forEach((segment: any, index: number) => {
-        // Add start node
-        if (segment.start.labels.includes("SchematicNode")) {
-          nodes.set(segment.start.properties.name, {
+      path.segments.forEach((segment: any) => {
+        // Add start node if it's not already added
+        if (!nodes.find((n) => n.id === segment.start.identity.toString())) {
+          nodes.push({
+            id: segment.start.identity.toString(),
             name: segment.start.properties.name,
-            type: "node",
-            partName: nodeParts.get(segment.start.properties.name),
+            type: segment.start.properties.type,
           });
         }
 
-        // Add end node
-        if (segment.end.labels.includes("SchematicNode")) {
-          nodes.set(segment.end.properties.name, {
+        // Add end node if it's not already added
+        if (!nodes.find((n) => n.id === segment.end.identity.toString())) {
+          nodes.push({
+            id: segment.end.identity.toString(),
             name: segment.end.properties.name,
-            type: "node",
-            partName: nodeParts.get(segment.end.properties.name),
+            type: segment.end.properties.type,
           });
         }
 
-        // Add net
-        if (segment.relationship.type === "CONNECTS") {
-          const netNode = segment.start.labels.includes("SchematicNet") ? segment.start : segment.end;
-
-          nodes.set(netNode.properties.name, {
-            name: netNode.properties.name,
-            type: "net",
-          });
-
-          // Add connection with pin name
-          const pinNode = segment.start.labels.includes("SchematicNodePin") ? segment.start : segment.end;
-
-          // Find the node connected to this pin
-          let nodeName = "";
-
-          if (segment.start.labels.includes("SchematicNodePin")) {
-            const nodeSegment = segments[index - 1];
-            if (nodeSegment) {
-              nodeName = nodeSegment.start.labels.includes("SchematicNode")
-                ? nodeSegment.start.properties.name
-                : nodeSegment.end.properties.name;
-            }
-
-            connections.push({
-              from: nodeName || segment.start.properties.name,
-              to: segment.end.properties.name,
-              pinName: pinNode.properties.name,
-              pinFriendlyName: pinNode.properties.friendly_name,
-            });
-          } else if (segment.end.labels.includes("SchematicNodePin")) {
-            const nodeSegment = segments[index + 1];
-            if (nodeSegment) {
-              nodeName = nodeSegment.start.labels.includes("SchematicNode")
-                ? nodeSegment.start.properties.name
-                : nodeSegment.end.properties.name;
-            }
-
-            connections.push({
-              from: segment.start.properties.name,
-              to: nodeName || segment.end.properties.name,
-              pinName: pinNode.properties.name,
-              pinFriendlyName: pinNode.properties.friendly_name,
-            });
-          }
-        }
+        // Add connection
+        connections.push({
+          from: segment.start.identity.toString(),
+          to: segment.end.identity.toString(),
+          type: segment.relationship.type,
+        });
       });
+
+      return { nodes, connections };
     });
 
-    return NextResponse.json({
-      paths: [
-        {
-          nodes: Array.from(nodes.values()),
-          connections,
-        },
-      ],
-    });
-  } catch (error) {
-    console.error("Error finding paths:", error);
-    return NextResponse.json({ error: "Failed to find paths" }, { status: 500 });
-  } finally {
     await session.close();
+
+    return NextResponse.json({ paths });
+  } catch (error) {
+    console.error("Error fetching paths:", error);
+    return NextResponse.json({ error: "Failed to fetch paths" }, { status: 500 });
   }
 }
