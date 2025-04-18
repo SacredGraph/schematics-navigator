@@ -59,13 +59,6 @@ export default function Search({
   // Fetch suggestions when query changes
   useEffect(() => {
     const fetchSuggestions = async () => {
-      // Don't show suggestions if the query matches the initialValue
-      if (query === initialValue) {
-        setSuggestions([]);
-        setShowSuggestions(false);
-        return;
-      }
-
       setIsLoading(true);
       try {
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -79,7 +72,6 @@ export default function Search({
           });
 
           setSuggestions(filteredResults);
-          setShowSuggestions(true);
         } else {
           console.error("Error fetching suggestions:", data.error);
           setSuggestions([]);
@@ -202,7 +194,7 @@ export default function Search({
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length > 0 && setShowSuggestions(true)}
+          onFocus={() => setShowSuggestions(true)}
           placeholder={placeholder}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
         />

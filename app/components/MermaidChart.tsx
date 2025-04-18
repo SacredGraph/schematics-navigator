@@ -15,6 +15,18 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
   const panzoomRef = useRef<any>(null);
   const router = useRouter();
 
+  const handleResetView = () => {
+    const svgElement = mermaidRef.current?.querySelector("svg");
+
+    if (svgElement) {
+      if (panzoomRef.current) {
+        panzoomRef.current.dispose();
+      }
+
+      panzoomRef.current = panzoom(mermaidRef.current as HTMLElement);
+    }
+  };
+
   useEffect(() => {
     // Initialize mermaid
     mermaid.initialize({
@@ -45,7 +57,6 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
 
     // Render the chart
     if (mermaidRef.current && chartDefinition) {
-      console.log("Rendering chart with definition:", chartDefinition);
       mermaidRef.current.innerHTML = "";
 
       // Generate a unique ID for each render to avoid conflicts
@@ -54,7 +65,6 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
       mermaid
         .render(id, chartDefinition)
         .then(({ svg }) => {
-          console.log("Mermaid rendered SVG:", svg);
           if (mermaidRef.current) {
             mermaidRef.current.innerHTML = svg;
 
@@ -63,8 +73,7 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
               const svgElement = mermaidRef.current?.querySelector("svg");
 
               if (svgElement) {
-                // Initialize new panzoom instance
-                panzoomRef.current = panzoom(mermaidRef.current as HTMLElement);
+                handleResetView();
 
                 // Find all node elements (rectangles, circles, etc.)
                 const nodeElements = svgElement.querySelectorAll(".node");
@@ -143,17 +152,25 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
   }, [chartDefinition, router]);
 
   return (
-    <div
-      className={`mermaid-container ${className}`}
-      ref={mermaidRef}
-      style={{
-        overflow: "hidden",
-        touchAction: "none", // Prevents default touch behaviors
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    ></div>
+    <>
+      <div
+        className={`mermaid-container ${className}`}
+        ref={mermaidRef}
+        style={{
+          overflow: "hidden",
+          touchAction: "none", // Prevents default touch behaviors
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      ></div>
+      <button
+        onClick={handleResetView}
+        className="absolute bottom-4 right-4 z-10 px-4 py-2 bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+      >
+        Reset View
+      </button>
+    </>
   );
 }
