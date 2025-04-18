@@ -2,7 +2,7 @@ import { getSession } from "@/lib/neo4j";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const netId = params.id;
+  const netId = params.id.toUpperCase();
 
   if (!netId) {
     return NextResponse.json({ error: "Net ID is required" }, { status: 400 });
@@ -16,7 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
        MATCH (net)-[:CONNECTS]->(pin:SchematicNodePin)<-[:HAS_PIN]-(node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
        RETURN net.name as netName, 
               collect({
-                name: pin.name,
+                pinName: pin.name,
+                pinFriendlyName: pin.friendly_name,
                 node: {
                   name: node.name,
                   part: {

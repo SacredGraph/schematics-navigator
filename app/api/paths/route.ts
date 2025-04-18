@@ -15,7 +15,8 @@ interface NodePart {
 interface Connection {
   from: string;
   to: string;
-  pin: string;
+  pinName: string;
+  pinFriendlyName: string;
 }
 
 interface Path {
@@ -109,7 +110,8 @@ export async function GET(request: NextRequest) {
             connections.push({
               from: nodeName || segment.start.properties.name,
               to: segment.end.properties.name,
-              pin: pinNode.properties.name,
+              pinName: pinNode.properties.name,
+              pinFriendlyName: pinNode.properties.friendly_name,
             });
           } else if (segment.end.labels.includes("SchematicNodePin")) {
             const nodeSegment = segments[index + 1];
@@ -122,7 +124,8 @@ export async function GET(request: NextRequest) {
             connections.push({
               from: segment.start.properties.name,
               to: nodeName || segment.end.properties.name,
-              pin: pinNode.properties.name,
+              pinName: pinNode.properties.name,
+              pinFriendlyName: pinNode.properties.friendly_name,
             });
           }
         }

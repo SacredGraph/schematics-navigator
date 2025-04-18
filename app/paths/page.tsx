@@ -15,7 +15,8 @@ interface Node {
 interface Connection {
   from: string;
   to: string;
-  pin: string;
+  pinName: string;
+  pinFriendlyName: string;
 }
 
 interface Path {
@@ -99,7 +100,9 @@ export default function PathsPage() {
 
       // Add connections in the order they appear in the path
       path.connections.forEach((conn) => {
-        definition += `  ${conn.from} ---|"Pin ${conn.pin}"| ${conn.to}\n`;
+        definition += `  ${conn.from} ---|"Pin ${conn.pinName}${
+          conn.pinFriendlyName ? ` / ${conn.pinFriendlyName}` : ""
+        }"| ${conn.to}\n`;
       });
 
       setMermaidDefinition(definition);

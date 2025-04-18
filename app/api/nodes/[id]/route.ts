@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = await context.params;
+  const nodeIdUpper = nodeId.toUpperCase();
 
   if (!nodeId) {
     return NextResponse.json({ error: "Node ID is required" }, { status: 400 });
@@ -18,13 +19,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
        RETURN node.name as nodeName, 
               part.name as partName,
               collect({
-                name: pin.name,
+                pinName: pin.name,
+                pinFriendlyName: pin.friendly_name,
                 net: {
                   name: net.name
                 }
               }) as pins
        LIMIT 1`,
-      { nodeId: nodeId.toUpperCase() }
+      { nodeId: nodeIdUpper }
     );
 
     if (result.records.length === 0) {

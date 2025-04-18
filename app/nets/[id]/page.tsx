@@ -6,7 +6,8 @@ import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
 interface Pin {
-  name: string;
+  pinName: string;
+  pinFriendlyName: string;
   node: {
     name: string;
     part: {
@@ -68,7 +69,7 @@ export default function NetDetailsPage() {
         {
           nodeName: string;
           partName: string;
-          pins: { name: string; index: number }[];
+          pins: { pinName: string; pinFriendlyName: string; index: number }[];
         }
       >();
 
@@ -76,7 +77,8 @@ export default function NetDetailsPage() {
       pins.forEach((pin, index) => {
         const nodeName = pin.node.name;
         const partName = pin.node.part.name;
-        const pinName = pin.name;
+        const pinName = pin.pinName;
+        const pinFriendlyName = pin.pinFriendlyName;
 
         if (!nodeMap.has(nodeName)) {
           nodeMap.set(nodeName, {
@@ -87,7 +89,7 @@ export default function NetDetailsPage() {
         }
 
         const nodeData = nodeMap.get(nodeName)!;
-        nodeData.pins.push({ name: pinName, index });
+        nodeData.pins.push({ pinName: pinName, pinFriendlyName: pinFriendlyName, index });
       });
 
       // Split nodes into left and right sides for better layout
@@ -103,7 +105,9 @@ export default function NetDetailsPage() {
 
         // Add connections for each pin
         nodeData.pins.forEach((pin) => {
-          definition += `  nodeL${nodeIndex} ---|"Pin ${pin.name}"| net\n`;
+          definition += `  nodeL${nodeIndex} ---|"Pin ${pin.pinName}${
+            pin.pinFriendlyName ? ` / ${pin.pinFriendlyName}` : ""
+          }"| net\n`;
         });
       });
 
@@ -115,7 +119,9 @@ export default function NetDetailsPage() {
 
         // Add connections for each pin
         nodeData.pins.forEach((pin) => {
-          definition += `  net ---|"Pin ${pin.name}"| nodeR${nodeIndex}\n`;
+          definition += `  net ---|"Pin ${pin.pinName}${
+            pin.pinFriendlyName ? ` / ${pin.pinFriendlyName}` : ""
+          }"| nodeR${nodeIndex}\n`;
         });
       });
 

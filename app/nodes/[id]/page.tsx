@@ -6,7 +6,8 @@ import MermaidChart from "../../components/MermaidChart";
 import Search from "../../components/Search";
 
 interface Pin {
-  name: string;
+  pinName: string;
+  pinFriendlyName: string;
   net: {
     name: string;
   };
@@ -69,16 +70,16 @@ export default function NodeDetailsPage() {
         string,
         {
           netName: string;
-          pins: { name: string; index: number }[];
+          pins: { pinName: string; pinFriendlyName: string; index: number }[];
         }
       >();
 
       // Process all pins and group them by net
       pins
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => a.pinName.localeCompare(b.pinName))
         .forEach((pin, index) => {
           const netName = pin.net.name;
-          const pinName = pin.name;
+          const pinName = pin.pinName;
 
           if (!netMap.has(netName)) {
             netMap.set(netName, {
@@ -88,7 +89,7 @@ export default function NodeDetailsPage() {
           }
 
           const netData = netMap.get(netName)!;
-          netData.pins.push({ name: pinName, index });
+          netData.pins.push({ pinName: pinName, pinFriendlyName: pin.pinFriendlyName, index });
         });
 
       // Split nets into left and right sides for better layout
@@ -104,7 +105,9 @@ export default function NodeDetailsPage() {
 
         // Add connections for each pin
         netData.pins.forEach((pin) => {
-          definition += `  node ---|"Pin ${pin.name}"| netL${netIndex}\n`;
+          definition += `  node ---|"Pin ${pin.pinName}${
+            pin.pinFriendlyName ? ` / ${pin.pinFriendlyName}` : ""
+          }"| netL${netIndex}\n`;
         });
       });
 
@@ -116,7 +119,9 @@ export default function NodeDetailsPage() {
 
         // Add connections for each pin
         netData.pins.forEach((pin) => {
-          definition += `  node ---|"Pin ${pin.name}"| netR${netIndex}\n`;
+          definition += `  node ---|"Pin ${pin.pinName}${
+            pin.pinFriendlyName ? ` / ${pin.pinFriendlyName}` : ""
+          }"| netR${netIndex}\n`;
         });
       });
 
