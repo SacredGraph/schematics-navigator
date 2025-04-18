@@ -104,7 +104,7 @@ export default function NodeDetailsPage() {
 
         // Add connections for each pin
         netData.pins.forEach((pin) => {
-          definition += `  node ---|"${pin.name}"| netL${netIndex}\n`;
+          definition += `  node ---|"Pin ${pin.name}"| netL${netIndex}\n`;
         });
       });
 
@@ -116,7 +116,7 @@ export default function NodeDetailsPage() {
 
         // Add connections for each pin
         netData.pins.forEach((pin) => {
-          definition += `  node ---|"${pin.name}"| netR${netIndex}\n`;
+          definition += `  node ---|"Pin ${pin.name}"| netR${netIndex}\n`;
         });
       });
 
@@ -129,13 +129,11 @@ export default function NodeDetailsPage() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <div className="w-full py-4">
+      <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
             <div className="flex gap-4 items-center">
-              <div className="flex-1">
-                <Search initialValue={params.id as string} />
-              </div>
+              <Search initialValue={params.id as string} />
               <button
                 onClick={() => router.push(`/paths?from=${encodeURIComponent(params.id as string)}`)}
                 className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"

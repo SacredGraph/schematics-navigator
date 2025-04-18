@@ -96,7 +96,7 @@ export default function PathsPage() {
 
       // Add connections in the order they appear in the path
       path.connections.forEach((conn) => {
-        definition += `  ${conn.from} ---|"${conn.pin}"| ${conn.to}\n`;
+        definition += `  ${conn.from} ---|"Pin ${conn.pin}"| ${conn.to}\n`;
       });
 
       setMermaidDefinition(definition);
@@ -108,7 +108,7 @@ export default function PathsPage() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <div className="w-full py-4">
+      <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
         <div className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl px-4">
             <div className="flex flex-row gap-4">

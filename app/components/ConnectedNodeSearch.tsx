@@ -133,7 +133,7 @@ export default function ConnectedNodeSearch({
           onKeyDown={handleKeyDown}
           onFocus={() => query.length > 0 && setShowSuggestions(true)}
           placeholder={placeholder}
-          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
         />
 
         {isLoading && (

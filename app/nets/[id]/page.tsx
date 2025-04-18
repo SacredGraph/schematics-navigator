@@ -103,7 +103,7 @@ export default function NetDetailsPage() {
 
         // Add connections for each pin
         nodeData.pins.forEach((pin) => {
-          definition += `  nodeL${nodeIndex} ---|"${pin.name}"| net\n`;
+          definition += `  nodeL${nodeIndex} ---|"Pin ${pin.name}"| net\n`;
         });
       });
 
@@ -115,7 +115,7 @@ export default function NetDetailsPage() {
 
         // Add connections for each pin
         nodeData.pins.forEach((pin) => {
-          definition += `  net ---|"${pin.name}"| nodeR${nodeIndex}\n`;
+          definition += `  net ---|"Pin ${pin.name}"| nodeR${nodeIndex}\n`;
         });
       });
 
@@ -128,7 +128,7 @@ export default function NetDetailsPage() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <div className="w-full py-4">
+      <div className="w-full py-4 fixed top-0 left-0 right-0 z-10">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl px-4">
             <Search initialValue={params.id as string} />
