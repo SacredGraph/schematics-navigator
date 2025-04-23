@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
       });
 
-      segments.forEach((segment: any, index: number) => {
+      segments.forEach((segment: any) => {
         const startNode = segment.start;
         const endNode = segment.end;
 
