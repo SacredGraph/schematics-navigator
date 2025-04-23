@@ -25,11 +25,11 @@ export default function PathsPage() {
         let definition = `graph LR\n`;
 
         // Define styles for different node types
-        definition += `  classDef componentStyle fill:white,stroke:#008000,color:#008000\n`;
-        definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
-        definition += `  classDef pinStyle fill:white,stroke:#0000FF,color:#0000FF\n`;
+        definition += `  classDef componentStyle fill:white,stroke:#000000,color:#000000\n`;
+        definition += `  classDef netStyle fill:white,stroke:#CC0000,color:#CC0000\n`;
+        definition += `  classDef pinStyle fill:white,stroke:#AAAAAA,color:#AAAAAA\n`;
         definition += `  classDef portStyle fill:white,stroke:#800080,color:#800080\n`;
-        definition += `  classDef connectionStyle fill:white,stroke:black,color:black\n`;
+        definition += `  classDef connectionStyle fill:white,stroke:#AAAAAA,color:#AAAAAA\n`;
 
         // Create maps to track unique nodes and connections
         const nodeMap = new Map<string, Node>();

@@ -62,8 +62,8 @@ export default function NodePage({ params }: Props) {
       let definition = `graph LR\n`;
 
       // Define styles for nodes and nets
-      definition += `  classDef nodeStyle fill:white,stroke:#008000,color:#008000\n`;
-      definition += `  classDef netStyle fill:white,stroke:black,color:black\n`;
+      definition += `  classDef nodeStyle fill:white,stroke:#000000,color:#000000\n`;
+      definition += `  classDef netStyle fill:white,stroke:#CC0000,color:#CC0000\n`;
 
       // Add the central node with styling
       definition += `  node["${nodeName}<br/><small>(${partName})</small>"]\n`;

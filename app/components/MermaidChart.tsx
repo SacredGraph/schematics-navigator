@@ -40,7 +40,8 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
         .edgeLabel p {
           background: white;
           border-radius: 99px;
-          border: 1px solid black;
+          border: 1px solid #AAAAAA;
+          color: #AAAAAA;
           padding: 0 8px;
           text-align: center;
           min-width: 30px;
