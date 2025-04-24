@@ -57,7 +57,7 @@ export default function ConnectedNodeSearch({
       setIsLoading(true);
       try {
         const url = `/api/${currentDesign}/connected-nodes?source=${encodeURIComponent(nodeId)}&q=${encodeURIComponent(
-          query
+          query.split(".")[0]
         )}`;
         const response = await fetch(url);
         const data = await response.json();

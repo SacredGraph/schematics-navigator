@@ -21,7 +21,7 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
         panzoomRef.current.dispose();
       }
 
-      panzoomRef.current = panzoom(mermaidRef.current as HTMLElement);
+      panzoomRef.current = panzoom(mermaidRef.current as HTMLElement, { disableKeyboardInteraction: true });
     }
   };
 

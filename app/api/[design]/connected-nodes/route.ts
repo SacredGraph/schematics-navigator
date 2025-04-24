@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       UNWIND nodes as pin
 
       MATCH (pin)<-[:HAS_PIN]-(node:SchematicNode)
-      WHERE $query IS NULL OR node.name STARTS WITH $query
+      WHERE node.name <> $sourceNode AND ($query IS NULL OR node.name STARTS WITH $query)
 
       RETURN DISTINCT node.name + '.' + pin.name as name
       ORDER BY name
