@@ -14,14 +14,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       `MATCH (d:SchematicDesign { name: $design })
       MATCH (net:SchematicNet)<-[:HAS_NET]-(d)
       WHERE net.name STARTS WITH $query
-      RETURN net.name as name, 'net' as type
+      RETURN net.name as name, 'net' as type, null as nodeName, null as pinName
       ORDER BY name
       LIMIT 10
       UNION ALL
       MATCH (d:SchematicDesign { name: $design })
       MATCH (node:SchematicNode)<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
       WHERE node.name STARTS WITH $query
-      RETURN node.name as name, 'node' as type
+      RETURN node.name as name, 'node' as type, null as nodeName, null as pinName
+      ORDER BY name
+      LIMIT 10
+      UNION ALL
+      MATCH (d:SchematicDesign { name: $design })
+      MATCH (pin:SchematicNodePin)<-[:HAS_PIN]-(node:SchematicNode)<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
+      WHERE pin.name STARTS WITH $query OR node.name STARTS WITH $query
+      RETURN node.name + '.' + pin.name as name, 'pin' as type, node.name as nodeName, pin.name as pinName
       ORDER BY name
       LIMIT 10`,
       { query: query.toUpperCase(), design }
@@ -31,6 +38,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const results = result.records.map((record) => ({
       name: record.get("name"),
       type: record.get("type"),
+      nodeName: record.get("nodeName"),
+      pinName: record.get("pinName"),
     }));
 
     return NextResponse.json({ results });

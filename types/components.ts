@@ -13,7 +13,9 @@ export interface SearchProps {
 
 export interface SearchResult {
   name: string;
-  type: "net" | "node";
+  type: "net" | "node" | "pin";
+  nodeName?: string; // For pins, this will contain the parent node name
+  pinName?: string; // For pins, this will contain the pin name
 }
 
 export interface ConnectedNodeSearchProps {

@@ -51,7 +51,7 @@ export default function Search({
     const fetchSuggestions = async () => {
       setIsLoading(true);
       try {
-        const url = `/api/${currentDesign}/search?q=${encodeURIComponent(query)}`;
+        const url = `/api/${currentDesign}/search?q=${encodeURIComponent(query.split(".")[0])}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -60,6 +60,7 @@ export default function Search({
           // Filter suggestions based on filterType
           const filteredResults = data.results.filter((result: SearchResult) => {
             if (filterType === "all") return true;
+            if (filterType === "node") return result.type === "node" || result.type === "pin";
             return result.type === filterType;
           });
 
@@ -97,8 +98,10 @@ export default function Search({
     if (!disableRedirect) {
       if (suggestion.type === "net") {
         router.push(`/${currentDesign}/nets/${encodeURIComponent(suggestion.name)}`);
-      } else {
+      } else if (suggestion.type === "node") {
         router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.name)}`);
+      } else if (suggestion.type === "pin" && suggestion.nodeName) {
+        router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.nodeName)}`);
       }
     }
   };
@@ -118,20 +121,23 @@ export default function Search({
       case "Tab":
         e.preventDefault();
         if (suggestions[selectedIndex]) {
-          setQuery(suggestions[selectedIndex].name);
+          const suggestion = suggestions[selectedIndex];
+          setQuery(suggestion.name);
           setShowSuggestions(false);
 
           // Call the onSelect callback if provided
           if (onSelect) {
-            onSelect(suggestions[selectedIndex].name);
+            onSelect(suggestion.name);
           }
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            if (suggestions[selectedIndex].type === "net") {
-              router.push(`/designs/${currentDesign}/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
-            } else {
-              router.push(`/designs/${currentDesign}/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            if (suggestion.type === "net") {
+              router.push(`/${currentDesign}/nets/${encodeURIComponent(suggestion.name)}`);
+            } else if (suggestion.type === "node") {
+              router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.name)}`);
+            } else if (suggestion.type === "pin" && suggestion.nodeName) {
+              router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.nodeName)}`);
             }
           }
         }
@@ -139,20 +145,23 @@ export default function Search({
       case "Enter":
         e.preventDefault();
         if (suggestions[selectedIndex]) {
-          setQuery(suggestions[selectedIndex].name);
+          const suggestion = suggestions[selectedIndex];
+          setQuery(suggestion.name);
           setShowSuggestions(false);
 
           // Call the onSelect callback if provided
           if (onSelect) {
-            onSelect(suggestions[selectedIndex].name);
+            onSelect(suggestion.name);
           }
 
           // Only redirect if disableRedirect is false
           if (!disableRedirect) {
-            if (suggestions[selectedIndex].type === "net") {
-              router.push(`/designs/${currentDesign}/nets/${encodeURIComponent(suggestions[selectedIndex].name)}`);
-            } else {
-              router.push(`/designs/${currentDesign}/nodes/${encodeURIComponent(suggestions[selectedIndex].name)}`);
+            if (suggestion.type === "net") {
+              router.push(`/${currentDesign}/nets/${encodeURIComponent(suggestion.name)}`);
+            } else if (suggestion.type === "node") {
+              router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.name)}`);
+            } else if (suggestion.type === "pin" && suggestion.nodeName) {
+              router.push(`/${currentDesign}/nodes/${encodeURIComponent(suggestion.nodeName)}`);
             }
           }
         }
@@ -166,12 +175,23 @@ export default function Search({
 
   // Group suggestions by type
   const groupedSuggestions = suggestions.reduce<Record<string, SearchResult[]>>((acc, suggestion) => {
-    if (!acc[suggestion.type]) {
-      acc[suggestion.type] = [];
+    if (suggestion.type === "pin" && suggestion.nodeName) {
+      const nodeKey = `node`;
+      if (!acc[nodeKey]) {
+        acc[nodeKey] = [];
+      }
+      acc[nodeKey].push(suggestion);
+    } else {
+      // For nets and nodes, group them by their type
+      if (!acc[suggestion.type]) {
+        acc[suggestion.type] = [];
+      }
+      acc[suggestion.type].push(suggestion);
     }
-    acc[suggestion.type].push(suggestion);
     return acc;
   }, {});
+
+  console.log(suggestions, groupedSuggestions);
 
   // Only show the filtered type in the UI
   const displaySuggestions =
@@ -199,25 +219,31 @@ export default function Search({
 
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-            {Object.entries(displaySuggestions).map(([type, items]) => (
-              <div key={type}>
-                <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">
-                  {type === "net" ? "Nets" : "Nodes"}
-                </div>
-                {items.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                      suggestions.indexOf(suggestion) === selectedIndex ? "bg-blue-100" : ""
-                    }`}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    onMouseEnter={() => setSelectedIndex(suggestions.indexOf(suggestion))}
-                  >
-                    {suggestion.name}
+            {Object.entries(displaySuggestions).map(([type, items]) => {
+              // Check if this is a node group (contains pins)
+              const isNodeGroup = type.startsWith("node:");
+              const nodeName = isNodeGroup ? type.split(":")[1] : null;
+
+              return (
+                <div key={type}>
+                  <div className="px-4 py-2 bg-gray-100 font-semibold text-gray-700">
+                    {isNodeGroup ? `Node: ${nodeName}` : type === "net" ? "Nets" : "Nodes"}
                   </div>
-                ))}
-              </div>
-            ))}
+                  {items.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                        suggestions.indexOf(suggestion) === selectedIndex ? "bg-blue-100" : ""
+                      } ${isNodeGroup ? "pl-8" : ""}`}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      onMouseEnter={() => setSelectedIndex(suggestions.indexOf(suggestion))}
+                    >
+                      {isNodeGroup ? `Pin: ${suggestion.pinName}` : suggestion.name}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ design: string }> }) {
   const resolvedParams = await params;
   const searchParams = request.nextUrl.searchParams;
-  const fromNode = searchParams.get("from");
-  const toNode = searchParams.get("to");
+  const [fromNode, fromPin] = (searchParams.get("from") || "").toUpperCase().split(".");
+  const [toNode, toPin] = (searchParams.get("to") || "").toUpperCase().split(".");
   const design = decodeURIComponent(resolvedParams.design);
 
   if (!fromNode || !toNode) {
@@ -19,11 +19,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const result = await session.run(
       `
         MATCH (d:SchematicDesign { name: $design })
-        MATCH (a:SchematicNodePin)<-[:HAS_PIN]-(:SchematicNode { name: $fromNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
-        MATCH (b:SchematicNodePin)<-[:HAS_PIN]-(:SchematicNode { name: $toNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
+        MATCH (a:SchematicNodePin WHERE $fromPin = "" OR a.name = $fromPin)<-[:HAS_PIN]-(:SchematicNode { name: $fromNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
+        MATCH (b:SchematicNodePin WHERE $toPin = "" OR b.name = $toPin)<-[:HAS_PIN]-(:SchematicNode { name: $toNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
 
-        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "MAPS_TO>|CONNECTS", terminatorNodes: [b], bfs: false }) YIELD path
-        WHERE NOT apoc.coll.containsDuplicates(nodes(path))
+        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "<CONNECTS,CONNECTS>|<CONNECTS,CONNECTS>,MAPS_TO>,<CONNECTS,CONNECTS>", terminatorNodes: [b], bfs: false }) YIELD path
+
         WITH path
         LIMIT 10
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           RETURN { pinElementId: elementId(pin), pinName: pin.name, pinFriendlyName: pin.friendly_name, nodeName: node.name, partName: part.name } 
         } as nodeParts
       `,
-      { fromNode, toNode, design }
+      { fromNode, fromPin: fromPin || "", toNode, toPin: toPin || "", design }
     );
 
     const nodes = new Map<string, Node>();
