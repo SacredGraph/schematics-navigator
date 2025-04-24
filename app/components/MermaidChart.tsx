@@ -21,7 +21,12 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
         panzoomRef.current.dispose();
       }
 
-      panzoomRef.current = panzoom(mermaidRef.current as HTMLElement, { disableKeyboardInteraction: true });
+      panzoomRef.current = panzoom(mermaidRef.current as HTMLElement, {
+        disableKeyboardInteraction: true,
+        beforeWheel: function (e) {
+          return !(e.target as HTMLElement).closest(".flowchart");
+        },
+      });
     }
   };
 
@@ -115,7 +120,6 @@ export default function MermaidChart({ chartDefinition, className = "" }: Mermai
 
                 // Find all node elements (rectangles, circles, etc.)
                 const nodeElements = svgElement.querySelectorAll(".node");
-                console.log("Found node elements:", nodeElements.length);
 
                 nodeElements.forEach((node) => {
                   // Get the node ID from the element
