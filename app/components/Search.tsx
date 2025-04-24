@@ -85,6 +85,15 @@ export default function Search({
     setQuery(e.target.value);
   };
 
+  const handleClearInput = () => {
+    setQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
   const handleSuggestionClick = (suggestion: SearchResult) => {
     setQuery(suggestion.name);
     setShowSuggestions(false);
@@ -210,6 +219,22 @@ export default function Search({
           placeholder={placeholder}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
         />
+
+        {query && (
+          <button
+            onClick={handleClearInput}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer bg-white rounded-full p-1"
+            aria-label="Clear search"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        )}
 
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
