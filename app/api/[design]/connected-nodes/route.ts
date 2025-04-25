@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       RETURN DISTINCT node.name + '.' + pin.name as name
       ORDER BY name
-      LIMIT 10
+      LIMIT 100
       `,
       {
         sourceNode: sourceNode.toUpperCase(),

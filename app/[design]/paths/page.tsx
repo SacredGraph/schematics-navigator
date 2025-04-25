@@ -204,9 +204,6 @@ export default function PathsPage() {
                     // Create a new URLSearchParams object with the current design
                     const params = new URLSearchParams();
                     params.set("from", name);
-                    if (toNode) {
-                      params.set("to", toNode);
-                    }
                     router.push(`/${currentDesign}/paths?${params.toString()}`);
                   }}
                 />

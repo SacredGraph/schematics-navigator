@@ -51,7 +51,7 @@ export default function Search({
     const fetchSuggestions = async () => {
       setIsLoading(true);
       try {
-        const url = `/api/${currentDesign}/search?q=${encodeURIComponent(query.split(".")[0])}`;
+        const url = `/api/${currentDesign}/search?q=${encodeURIComponent(query)}`;
 
         const response = await fetch(url);
         const data = await response.json();
