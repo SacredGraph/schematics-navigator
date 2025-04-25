@@ -200,8 +200,6 @@ export default function Search({
     return acc;
   }, {});
 
-  console.log(suggestions, groupedSuggestions);
-
   // Only show the filtered type in the UI
   const displaySuggestions =
     filterType === "all" ? groupedSuggestions : { [filterType]: groupedSuggestions[filterType] || [] };

@@ -21,16 +21,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       MATCH (d:SchematicDesign { name: $design })
       MATCH (a:SchematicNodePin WHERE $sourcePin IS NULL OR a.name = $sourcePin)<-[:HAS_PIN]-(:SchematicNode { name: $sourceNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
 
-      CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "<CONNECTS,CONNECTS>|<CONNECTS,CONNECTS>,MAPS_TO>,<CONNECTS,CONNECTS>", bfs: false }) YIELD path
+      CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "CONNECTS|MAPS_TO>", bfs: false }) YIELD path
+      WHERE type(last(relationships(path))) <> "MAPS_TO"
 
       WITH nodes(path) as nodes
       UNWIND nodes as pin
 
       MATCH (pin)<-[:HAS_PIN]-(node:SchematicNode)
       WHERE node.name <> $sourceNode AND ($query IS NULL OR node.name STARTS WITH $query)
+      WITH DISTINCT node, pin
+      ORDER BY node.name, pin.name
 
-      RETURN DISTINCT node.name + '.' + pin.name as name
-      ORDER BY name
+      RETURN DISTINCT node.name as nodeName, collect(node.name + '.' + pin.name) as pinNames
+      ORDER BY nodeName
       LIMIT 100
       `,
       {
@@ -41,10 +44,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     );
 
-    const results = result.records.map((record) => ({
-      name: record.get("name"),
-      type: "node" as const,
-    }));
+    const results = result.records.flatMap((record) => [
+      {
+        name: record.get("nodeName"),
+        type: "node" as const,
+      },
+      ...record.get("pinNames").map((pinName: string) => ({
+        name: pinName,
+        type: "pin" as const,
+      })),
+    ]);
 
     return NextResponse.json({ results });
   } catch (error) {

@@ -22,10 +22,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         MATCH (a:SchematicNodePin WHERE $fromPin = "" OR a.name = $fromPin)<-[:HAS_PIN]-(:SchematicNode { name: $fromNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
         MATCH (b:SchematicNodePin WHERE $toPin = "" OR b.name = $toPin)<-[:HAS_PIN]-(:SchematicNode { name: $toNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
 
-        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "<CONNECTS,CONNECTS>|<CONNECTS,CONNECTS>,MAPS_TO>,<CONNECTS,CONNECTS>", terminatorNodes: [b], bfs: false }) YIELD path
+        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "CONNECTS|MAPS_TO>", terminatorNodes: [b], bfs: false }) YIELD path
+        WHERE type(last(relationships(path))) <> "MAPS_TO"
 
         WITH path
-        LIMIT 10
+        LIMIT 100
 
         RETURN path, collect { 
           MATCH (pin:SchematicNodePin)<-[:HAS_PIN]-(node:SchematicNode)<-[:HAS_NODE]-(part:SchematicPart)
@@ -43,8 +44,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const path = record.get("path");
       const segments = path.segments;
       const nodeParts = record.get("nodeParts");
-
-      console.log("path", pathIndex);
 
       // Process node parts first to get node and part information
       nodeParts.forEach((part: any) => {
