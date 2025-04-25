@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const nodes = new Map<string, Node>();
     const connections = new Map<string, Connection>();
 
-    result.records.forEach((record, pathIndex) => {
+    result.records.forEach((record) => {
       const path = record.get("path");
       const segments = path.segments;
       const nodeParts = record.get("nodeParts");
