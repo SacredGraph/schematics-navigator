@@ -10,6 +10,7 @@ export default function ConnectedNodeSearch({
   onSelect,
   disableRedirect = false,
   initialValue = "",
+  includeGND = true,
 }: ConnectedNodeSearchProps) {
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
@@ -58,7 +59,7 @@ export default function ConnectedNodeSearch({
       try {
         const url = `/api/${currentDesign}/connected-nodes?source=${encodeURIComponent(nodeId)}&q=${encodeURIComponent(
           query.split(".")[0]
-        )}`;
+        )}&includeGND=${includeGND}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -78,7 +79,7 @@ export default function ConnectedNodeSearch({
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, nodeId, currentDesign]);
+  }, [query, nodeId, currentDesign, includeGND]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -108,6 +109,7 @@ export default function ConnectedNodeSearch({
       const otherParams = new URLSearchParams();
       otherParams.set("from", nodeId);
       otherParams.set("to", suggestion.name);
+      otherParams.set("includeGND", includeGND.toString());
 
       router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
     }
@@ -142,6 +144,7 @@ export default function ConnectedNodeSearch({
             const otherParams = new URLSearchParams();
             otherParams.set("from", nodeId);
             otherParams.set("to", suggestions[selectedIndex].name);
+            otherParams.set("includeGND", includeGND.toString());
 
             router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
           }
@@ -164,6 +167,7 @@ export default function ConnectedNodeSearch({
             const otherParams = new URLSearchParams();
             otherParams.set("from", nodeId);
             otherParams.set("to", suggestions[selectedIndex].name);
+            otherParams.set("includeGND", includeGND.toString());
 
             router.push(`/${currentDesign}/paths?${otherParams.toString()}`);
           }

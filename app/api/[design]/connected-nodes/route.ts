@@ -7,6 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [sourceNode, sourcePin] = (searchParams.get("source") || "").split(".");
   const query = searchParams.get("q");
   const design = decodeURIComponent(resolvedParams.design);
+  const includeGND = searchParams.get("includeGND") !== "false"; // Default to true if not specified
 
   if (!sourceNode) {
     return NextResponse.json({ error: "Source node is required" }, { status: 400 });
@@ -21,7 +22,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       MATCH (d:SchematicDesign { name: $design })
       MATCH (a:SchematicNodePin WHERE $sourcePin IS NULL OR a.name = $sourcePin)<-[:HAS_PIN]-(:SchematicNode { name: $sourceNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
 
-      CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "CONNECTS|MAPS_TO>", bfs: false }) YIELD path
+      OPTIONAL MATCH (gnd:SchematicNet {name: "GND"})
+      WITH a, d, CASE WHEN $includeGND THEN [] ELSE COLLECT(gnd) END AS blacklist
+
+      CALL apoc.path.expandConfig(a, { 
+        uniqueness: "NODE_PATH", 
+        relationshipFilter: "CONNECTS|MAPS_TO>", 
+        blacklistNodes: blacklist,
+        bfs: false 
+      }) YIELD path
       WHERE type(last(relationships(path))) <> "MAPS_TO"
 
       WITH nodes(path) as nodes
@@ -41,6 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         sourcePin: sourcePin ? sourcePin.toUpperCase() : null,
         query: query ? query.toUpperCase() : null,
         design,
+        includeGND,
       }
     );
 

@@ -8,6 +8,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [fromNode, fromPin] = (searchParams.get("from") || "").toUpperCase().split(".");
   const [toNode, toPin] = (searchParams.get("to") || "").toUpperCase().split(".");
   const design = decodeURIComponent(resolvedParams.design);
+  const includeGND = searchParams.get("includeGND") !== "false"; // Default to true if not specified
 
   if (!fromNode || !toNode) {
     return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
@@ -21,10 +22,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         MATCH (d:SchematicDesign { name: $design })
         MATCH (a:SchematicNodePin WHERE $fromPin = "" OR a.name = $fromPin)<-[:HAS_PIN]-(:SchematicNode { name: $fromNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
         MATCH (b:SchematicNodePin WHERE $toPin = "" OR b.name = $toPin)<-[:HAS_PIN]-(:SchematicNode { name: $toNode })<-[:HAS_NODE]-(:SchematicPart)<-[:HAS_PART]-(d)
-
-        CALL apoc.path.expandConfig(a, { uniqueness: "NODE_PATH", relationshipFilter: "CONNECTS|MAPS_TO>", terminatorNodes: [b], bfs: false }) YIELD path
+        
+        OPTIONAL MATCH (gnd:SchematicNet {name: "GND"})
+        WITH a, b, d, CASE WHEN $includeGND THEN [] ELSE COLLECT(gnd) END AS blacklist
+        
+        CALL apoc.path.expandConfig(a, { 
+          uniqueness: "NODE_PATH", 
+          relationshipFilter: "CONNECTS|MAPS_TO>", 
+          terminatorNodes: [b],
+          blacklistNodes: blacklist,
+          bfs: false 
+        }) YIELD path
         WHERE type(last(relationships(path))) <> "MAPS_TO"
-
+        
         WITH path
         LIMIT 100
 
@@ -34,7 +44,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           RETURN { pinElementId: elementId(pin), pinName: pin.name, pinFriendlyName: pin.friendly_name, nodeName: node.name, partName: part.name } 
         } as nodeParts
       `,
-      { fromNode, fromPin: fromPin || "", toNode, toPin: toPin || "", design }
+      {
+        fromNode,
+        fromPin: fromPin || "",
+        toNode,
+        toPin: toPin || "",
+        design,
+        includeGND,
+      }
     );
 
     const nodes = new Map<string, Node>();
@@ -116,68 +133,68 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         //   // }
         // } else if (segment.relationship.type === "MAPS_TO") {
         //   // Handle mappings between pins of the same node
-        //   const sourcePin = segment.start;
-        //   const targetPin = segment.end;
+        //   // const sourcePin = segment.start;
+        //   // const targetPin = segment.end;
 
         //   // Find the node information from nodeParts
-        //   const nodePart = nodeParts.find(
-        //     (part: any) => part.pinElementId === sourcePin.elementId || part.pinElementId === targetPin.elementId
-        //   );
+        //   // const nodePart = nodeParts.find(
+        //   //   (part: any) => part.pinElementId === sourcePin.elementId || part.pinElementId === targetPin.elementId
+        //   // );
 
-        //   if (nodePart) {
-        //     // Add the node to our nodes map
-        //     nodes.set(nodePart.nodeName, {
-        //       name: nodePart.nodeName,
-        //       type: "node",
-        //       partName: nodePart.partName,
-        //     });
+        //   // if (nodePart) {
+        //   //   // Add the node to our nodes map
+        //   //   nodes.set(nodePart.nodeName, {
+        //   //     name: nodePart.nodeName,
+        //   //     type: "node",
+        //   //     partName: nodePart.partName,
+        //   //   });
 
-        //     // Find the net that this node is connected to
-        //     const netSegment = segments.find(
-        //       (s: any) =>
-        //         s.relationship.type === "CONNECTS" &&
-        //         ((s.start.labels.includes("SchematicNodePin") &&
-        //           nodeParts.some((p: any) => p.pinElementId === s.start.elementId)) ||
-        //           (s.end.labels.includes("SchematicNodePin") &&
-        //             nodeParts.some((p: any) => p.pinElementId === s.end.elementId)))
-        //     );
+        //   //   // Find the net that this node is connected to
+        //   //   const netSegment = segments.find(
+        //   //     (s: any) =>
+        //   //       s.relationship.type === "CONNECTS" &&
+        //   //       ((s.start.labels.includes("SchematicNodePin") &&
+        //   //         nodeParts.some((p: any) => p.pinElementId === s.start.elementId)) ||
+        //   //         (s.end.labels.includes("SchematicNodePin") &&
+        //   //           nodeParts.some((p: any) => p.pinElementId === s.end.elementId)))
+        //   //   );
 
-        //     if (netSegment) {
-        //       const netNode = netSegment.start.labels.includes("SchematicNet") ? netSegment.start : netSegment.end;
-        //       const pinNode = netSegment.start.labels.includes("SchematicNodePin") ? netSegment.start : netSegment.end;
+        //   //   if (netSegment) {
+        //   //     const netNode = netSegment.start.labels.includes("SchematicNet") ? netSegment.start : netSegment.end;
+        //   //     const pinNode = netSegment.start.labels.includes("SchematicNodePin") ? netSegment.start : netSegment.end;
 
-        //       // Add the net to our nodes map if not already there
-        //       nodes.set(netNode.properties.name, {
-        //         name: netNode.properties.name,
-        //         type: "net",
-        //       });
+        //   //     // Add the net to our nodes map if not already there
+        //   //     nodes.set(netNode.properties.name, {
+        //   //       name: netNode.properties.name,
+        //   //       type: "net",
+        //   //     });
 
-        //       // Determine the direction based on which side of the net the pin is on
-        //       const isPinStart = netSegment.start.labels.includes("SchematicNodePin");
-        //       const fromNode = isPinStart ? nodePart.nodeName : netNode.properties.name;
-        //       const fromNodeKey = isPinStart
-        //         ? `${nodePart.nodeName}.${pinNode.properties.name}`
-        //         : netNode.properties.name;
-        //       const toNode = isPinStart ? netNode.properties.name : nodePart.nodeName;
-        //       const toNodeKey = isPinStart
-        //         ? netNode.properties.name
-        //         : `${nodePart.nodeName}.${pinNode.properties.name}`;
+        //   //     // Determine the direction based on which side of the net the pin is on
+        //   //     const isPinStart = netSegment.start.labels.includes("SchematicNodePin");
+        //   //     const fromNode = isPinStart ? nodePart.nodeName : netNode.properties.name;
+        //   //     const fromNodeKey = isPinStart
+        //   //       ? `${nodePart.nodeName}.${pinNode.properties.name}`
+        //   //       : netNode.properties.name;
+        //   //     const toNode = isPinStart ? netNode.properties.name : nodePart.nodeName;
+        //   //     const toNodeKey = isPinStart
+        //   //       ? netNode.properties.name
+        //   //       : `${nodePart.nodeName}.${pinNode.properties.name}`;
 
-        //       // Create a unique key for this connection using scoped names
-        //       const connectionKey = `${fromNodeKey}-${toNodeKey}`;
+        //   //     // Create a unique key for this connection using scoped names
+        //   //     const connectionKey = `${fromNodeKey}-${toNodeKey}`;
 
-        //       // Only add the connection if it's not already in our set
-        //       if (!uniqueConnections.has(connectionKey)) {
-        //         uniqueConnections.add(connectionKey);
-        //         connections.push({
-        //           from: fromNode,
-        //           to: toNode,
-        //           pinName: pinNode.properties.name,
-        //           pinFriendlyName: pinNode.properties.friendly_name,
-        //         });
-        //       }
-        //     }
-        //   }
+        //   //     // Only add the connection if it's not already in our set
+        //   //     if (!uniqueConnections.has(connectionKey)) {
+        //   //       uniqueConnections.add(connectionKey);
+        //   //       connections.push({
+        //   //         from: fromNode,
+        //   //         to: toNode,
+        //   //         pinName: pinNode.properties.name,
+        //   //         pinFriendlyName: pinNode.properties.friendly_name,
+        //   //       });
+        //   //     }
+        //   //   }
+        //   // }
         // }
       });
     });

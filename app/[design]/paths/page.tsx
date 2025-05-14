@@ -17,6 +17,7 @@ export default function PathsPage() {
   const toNode = searchParams.get("to");
   const [mermaidDefinition, setMermaidDefinition] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [includeGND, setIncludeGND] = useState<boolean>(true);
   const router = useRouter();
 
   const generateMermaidDefinition = useCallback(
@@ -156,7 +157,9 @@ export default function PathsPage() {
       setIsLoading(true);
       try {
         // Build the URL with the design parameter if available
-        const url = `/api/${currentDesign}/paths?from=${encodeURIComponent(fromNode)}&to=${encodeURIComponent(toNode)}`;
+        const url = `/api/${currentDesign}/paths?from=${encodeURIComponent(fromNode)}&to=${encodeURIComponent(
+          toNode
+        )}&includeGND=${includeGND}`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -179,7 +182,7 @@ export default function PathsPage() {
     };
 
     fetchPaths();
-  }, [fromNode, toNode, generateMermaidDefinition, currentDesign]);
+  }, [fromNode, toNode, generateMermaidDefinition, currentDesign, includeGND]);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -213,6 +216,7 @@ export default function PathsPage() {
                   initialValue={toNode || ""}
                   disableRedirect
                   nodeId={fromNode || ""}
+                  includeGND={includeGND}
                   placeholder="Search for target node"
                   onSelect={(name) => {
                     const params = new URLSearchParams();
@@ -220,10 +224,22 @@ export default function PathsPage() {
                     if (fromNode) {
                       params.set("from", fromNode);
                     }
+                    params.set("includeGND", includeGND.toString());
                     router.push(`/${currentDesign}/paths?${params.toString()}`);
                   }}
                 />
               </div>
+            </div>
+            <div className="flex items-center mt-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeGND}
+                  onChange={(e) => setIncludeGND(e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                />
+                <span className="ml-2 text-sm">Include GND</span>
+              </label>
             </div>
           </div>
         </div>

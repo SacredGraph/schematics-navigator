@@ -24,4 +24,5 @@ export interface ConnectedNodeSearchProps {
   onSelect?: (name: string) => void;
   disableRedirect?: boolean;
   initialValue?: string;
+  includeGND?: boolean;
 }
